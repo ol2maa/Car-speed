@@ -163,6 +163,14 @@ const game = {
     // حالة اللعبة
     finished: false,
 
+    // ========================================
+    // خط النهاية عند 5 كم
+    // يبدأ من أعلى الشارع ثم ينزل حتى السيارة
+    // ========================================
+    finishActive: false,
+    finishY: -28,
+    finishHeight: 28,
+
 
     // ========================================
     // السيارة الرئيسية
@@ -2400,6 +2408,7 @@ function restart() {
 
     game.finished = false;
     game.finishActive = false;
+    game.finishHeight = 28;
     game.finishY = -game.finishHeight;
 
 
