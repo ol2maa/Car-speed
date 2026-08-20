@@ -139,7 +139,7 @@ resize();
 const game = {
 
     // السرعة
-    speed: 0,
+    speed: 60,
 
     minSpeed: 0,
 
@@ -153,7 +153,7 @@ const game = {
     // المسافة
     distance: 0,
 
-    maxDistance: 3,
+    maxDistance: 5,
 
 
     // الوقت
@@ -172,9 +172,9 @@ const game = {
 
     playerY: 0,
 
-    carWidth: 45,
+    carWidth: 54,
 
-    carHeight: 75,
+    carHeight: 82,
 
 
     // ========================================
@@ -628,20 +628,21 @@ function drawRoad() {
 
 
     // ============================================
-    // خط النهاية عند الوصول إلى 5 كم
-    // مربعات سوداء وبيضاء بعرض الشارع
+    // خط النهاية
+    // يبدأ من أعلى الشارع عند 5 كم
+    // ثم ينزل تدريجياً حتى يصل إلى السيارة
     // ============================================
-    if (game.finished) {
+    if (game.finishActive) {
 
-        const finishY = game.playerY - game.carHeight / 2 - 5;
-        const finishHeight = 28;
-        const squareWidth = game.roadWidth / 10;
+        const finishHeight = game.finishHeight;
+        const squareRows = 2;
+        const squareCols = 12;
+        const squareWidth = game.roadWidth / squareCols;
+        const rowHeight = finishHeight / squareRows;
         const left = roadLeft();
 
-        for (let row = 0; row < 2; row++) {
-
-            for (let col = 0; col < 10; col++) {
-
+        for (let row = 0; row < squareRows; row++) {
+            for (let col = 0; col < squareCols; col++) {
                 ctx.fillStyle =
                     ((row + col) % 2 === 0)
                         ? "#ffffff"
@@ -649,13 +650,14 @@ function drawRoad() {
 
                 ctx.fillRect(
                     left + col * squareWidth,
-                    finishY + row * (finishHeight / 2),
+                    game.finishY + row * rowHeight,
                     squareWidth + 1,
-                    finishHeight / 2 + 1
+                    rowHeight + 1
                 );
             }
         }
     }
+
 }
 
 
@@ -1266,44 +1268,38 @@ function update(dt) {
 
     if (!game.finished) {
 
-        game.distance +=
-            (
-                game.speed *
-                dt
-            ) / 3600;
+        if (!game.finishActive) {
+            game.distance +=
+                (
+                    game.speed *
+                    dt
+                ) / 3600;
+        }
 
 
-        // الوصول إلى 5 كم
+        // الوصول إلى 5 كم: نُطلق خط النهاية من أعلى الشاشة,
+        // ولا ننهي اللعب إلا عندما يصل الخط فعلياً إلى السيارة.
         if (
             game.distance >=
-            game.maxDistance
+            game.maxDistance &&
+            !game.finishActive
         ) {
 
             game.distance =
                 game.maxDistance;
 
+            game.finishActive = true;
 
-            game.finished = true;
+            // يبدأ خط النهاية خارج/عند أعلى الشارع
+            game.finishY = -game.finishHeight;
 
-
-            game.speed = 0;
-
-            game.speedMotion = 0;
-
-
+            // نوقف تحكم اللاعب، لكن نُبقي حركة الطريق
+            // حتى يتحرك خط النهاية من الأعلى إلى السيارة.
             game.moveLeft = false;
-
             game.moveRight = false;
-
-
             game.speedUpHeld = false;
-
             game.speedDownHeld = false;
-
-
             game.speedHoldTimer = 0;
-
-
             game.collisionLocked = false;
         }
     }
@@ -1440,6 +1436,40 @@ function update(dt) {
 
             game.lines[i] -=
                 totalSpan;
+        }
+    }
+
+
+    // ========================================
+    // حركة خط النهاية بعد الوصول إلى 5 كم
+    // الخط ينزل مع حركة الطريق من أعلى الشاشة
+    // حتى يلامس مقدمة السيارة، ثم تنتهي اللعبة.
+    // ========================================
+    if (game.finishActive && !game.finished) {
+
+        game.finishY += move;
+
+        const carFrontY =
+            game.playerY - game.carHeight / 2;
+
+        // عندما يصل خط النهاية إلى السيارة
+        if (
+            game.finishY + game.finishHeight >=
+            carFrontY
+        ) {
+
+            game.finishY =
+                carFrontY - game.finishHeight;
+
+            game.finished = true;
+
+            game.speed = 0;
+            game.speedMotion = 0;
+            game.moveLeft = false;
+            game.moveRight = false;
+            game.speedUpHeld = false;
+            game.speedDownHeld = false;
+            game.speedHoldTimer = 0;
         }
     }
 
@@ -2369,6 +2399,8 @@ function restart() {
 
 
     game.finished = false;
+    game.finishActive = false;
+    game.finishY = -game.finishHeight;
 
 
     game.collisionLocked = false;
