@@ -625,6 +625,37 @@ function drawRoad() {
             t.y
         );
     }
+
+
+    // ============================================
+    // خط النهاية عند الوصول إلى 5 كم
+    // مربعات سوداء وبيضاء بعرض الشارع
+    // ============================================
+    if (game.finished) {
+
+        const finishY = H * 0.42;
+        const finishHeight = 28;
+        const squareWidth = game.roadWidth / 10;
+        const left = roadLeft();
+
+        for (let row = 0; row < 2; row++) {
+
+            for (let col = 0; col < 10; col++) {
+
+                ctx.fillStyle =
+                    ((row + col) % 2 === 0)
+                        ? "#ffffff"
+                        : "#000000";
+
+                ctx.fillRect(
+                    left + col * squareWidth,
+                    finishY + row * (finishHeight / 2),
+                    squareWidth + 1,
+                    finishHeight / 2 + 1
+                );
+            }
+        }
+    }
 }
 
 
