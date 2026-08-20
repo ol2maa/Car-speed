@@ -320,7 +320,10 @@ function roadRight() {
 
 function playerY() {
 
-    return H - 110;
+    // السيارة تكون مباشرة فوق صف أزرار السرعة
+    // مع ترك مسافة بسيطة حتى لا تلامس الأزرار.
+    const speedButtonTop = H - 155 - 29;
+    return speedButtonTop - (game.carHeight / 2) - 8;
 }
 
 
