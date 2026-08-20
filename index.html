@@ -19,7 +19,6 @@ viewport-fit=cover">
 <title>لعبة القيادة</title>
 
 <style>
-
 * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
@@ -29,21 +28,14 @@ html,
 body {
     margin: 0;
     padding: 0;
-
     width: 100%;
     height: 100%;
-
     overflow: hidden;
-
     background: #78b85a;
-
     touch-action: none;
-
     user-select: none;
     -webkit-user-select: none;
-
     overscroll-behavior: none;
-
     position: fixed;
     inset: 0;
 }
@@ -52,37 +44,27 @@ body {
     width: 100vw;
     height: 100vh;
     height: 100dvh;
-
     overflow: hidden;
-
     background: #78b85a;
 }
 
 canvas {
-
     display: block;
-
     position: fixed;
-
     left: 0;
     top: 0;
-
     width: 100vw;
     height: 100vh;
     height: 100dvh;
-
     margin: 0;
     padding: 0;
-
     border: 0;
-
     z-index: 1;
 }
 
 ::-webkit-scrollbar {
     display: none;
 }
-
 </style>
 </head>
 
@@ -91,19 +73,14 @@ canvas {
 <canvas id="game"></canvas>
 
 <script>
-
 "use strict";
-
 
 // ============================================================
 // Canvas
 // ============================================================
 
-const canvas =
-    document.getElementById("game");
-
-const ctx =
-    canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
 let W = 0;
 let H = 0;
@@ -115,33 +92,17 @@ let dpr = 1;
 // ============================================================
 
 function drawRoundedRect(
-    x,
-    y,
-    w,
-    h,
-    r,
-    fill,
-    stroke,
-    lineWidth = 1
+    x, y, w, h, r,
+    fill, stroke, lineWidth = 1
 ) {
-
     ctx.beginPath();
 
-    ctx.moveTo(
-        x + r,
-        y
-    );
-
-    ctx.lineTo(
-        x + w - r,
-        y
-    );
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
 
     ctx.quadraticCurveTo(
-        x + w,
-        y,
-        x + w,
-        y + r
+        x + w, y,
+        x + w, y + r
     );
 
     ctx.lineTo(
@@ -183,13 +144,11 @@ function drawRoundedRect(
     ctx.closePath();
 
     if (fill) {
-
         ctx.fillStyle = fill;
         ctx.fill();
     }
 
     if (stroke) {
-
         ctx.strokeStyle = stroke;
         ctx.lineWidth = lineWidth;
         ctx.stroke();
@@ -231,35 +190,27 @@ const game = {
 
     playerY: 0,
 
-
     // نفس حجم سيارات المرور
     carWidth: 46,
     carHeight: 72,
 
-
-    // الطريق
     roadWidth: 280,
 
-
-    // خطوط الطريق
     lineWidth: 8,
+
     lineHeight: 45,
+
     lineSpacing: 90,
 
     lines: [],
 
-
-    // الأشجار
     trees: [],
 
-
-    // سيارات المرور
     traffic: [],
 
     trafficCount: 8,
 
     trafficColors: [
-
         "#1976d2",
         "#f5c400",
         "#eeeeee",
@@ -272,20 +223,18 @@ const game = {
 
     trafficLanes: [],
 
-
-    // التحكم
     moveLeft: false,
+
     moveRight: false,
 
     speedUpHeld: false,
+
     speedDownHeld: false,
 
     speedHoldTimer: 0,
 
     speedHoldInterval: 0.08,
 
-
-    // التصادم
     collisionLocked: false,
 
     collisionTimer: 0,
@@ -294,12 +243,9 @@ const game = {
 
     collisionCooldown: 0,
 
-
-    // الوميض
     flashTimer: 0,
 
     flashOn: true,
-
 
     savedCarX: 0,
 
@@ -317,71 +263,39 @@ const game = {
 
 function resize() {
 
-    let width =
-        window.innerWidth;
-
-    let height =
-        window.innerHeight;
-
+    let width = window.innerWidth;
+    let height = window.innerHeight;
 
     if (window.visualViewport) {
-
-        width =
-            window.visualViewport.width;
-
-        height =
-            window.visualViewport.height;
+        width = window.visualViewport.width;
+        height = window.visualViewport.height;
     }
 
-
-    dpr =
-        Math.min(
-            window.devicePixelRatio || 1,
-            2
-        );
-
+    dpr = Math.min(
+        window.devicePixelRatio || 1,
+        2
+    );
 
     W = width;
     H = height;
 
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
 
-    canvas.style.width =
-        W + "px";
-
-    canvas.style.height =
-        H + "px";
-
-
-    canvas.width =
-        Math.floor(W * dpr);
-
-    canvas.height =
-        Math.floor(H * dpr);
-
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
 
     ctx.setTransform(
-        dpr,
-        0,
-        0,
-        dpr,
-        0,
-        0
+        dpr, 0, 0, dpr, 0, 0
     );
 
-
-    game.playerY =
-        playerY();
-
+    game.playerY = playerY();
 
     game.trafficLanes = [
-
         W / 2 - 75,
-
         W / 2,
-
         W / 2 + 75
     ];
-
 
     if (
         !game.finished &&
@@ -393,19 +307,16 @@ function resize() {
             game.carWidth / 2 +
             5;
 
-
         const rightLimit =
             roadRight() -
             game.carWidth / 2 -
             5;
 
-
-        game.playerX =
-            clamp(
-                game.playerX,
-                leftLimit,
-                rightLimit
-            );
+        game.playerX = clamp(
+            game.playerX,
+            leftLimit,
+            rightLimit
+        );
     }
 }
 
@@ -416,9 +327,7 @@ function resize() {
 
 function requestGameFullscreen() {
 
-    const el =
-        document.documentElement;
-
+    const el = document.documentElement;
 
     if (
         window.matchMedia &&
@@ -426,10 +335,8 @@ function requestGameFullscreen() {
             "(display-mode: standalone)"
         ).matches
     ) {
-
         return;
     }
-
 
     if (
         el.requestFullscreen &&
@@ -440,7 +347,6 @@ function requestGameFullscreen() {
             .catch(() => {});
     }
 }
-
 
 document.addEventListener(
     "touchstart",
@@ -457,20 +363,11 @@ document.addEventListener(
 // ============================================================
 
 function roadLeft() {
-
-    return (
-        W / 2 -
-        game.roadWidth / 2
-    );
+    return W / 2 - game.roadWidth / 2;
 }
 
-
 function roadRight() {
-
-    return (
-        W / 2 +
-        game.roadWidth / 2
-    );
+    return W / 2 + game.roadWidth / 2;
 }
 
 
@@ -480,13 +377,10 @@ function roadRight() {
 
 function playerY() {
 
-    const bottomSafe = 20;
+    const bottomSafe = 18;
 
     const directionButtonY =
-        H -
-        bottomSafe -
-        22;
-
+        H - bottomSafe - 22;
 
     return (
         directionButtonY -
@@ -501,33 +395,23 @@ function playerY() {
 // ============================================================
 
 function clamp(v, a, b) {
-
     return Math.max(
         a,
         Math.min(b, v)
     );
 }
 
-
 function rand(a, b) {
-
-    return (
-        a +
-        Math.random() *
-        (b - a)
-    );
+    return a + Math.random() * (b - a);
 }
-
 
 function formatTime(seconds) {
 
     const minutes =
         Math.floor(seconds / 60);
 
-
     const sec =
         seconds % 60;
-
 
     return (
         String(minutes).padStart(2, "0") +
@@ -543,8 +427,7 @@ function formatTime(seconds) {
 
 function drawTree(x, y) {
 
-    ctx.fillStyle =
-        "#7b4b27";
+    ctx.fillStyle = "#7b4b27";
 
     ctx.fillRect(
         x - 6,
@@ -552,7 +435,6 @@ function drawTree(x, y) {
         12,
         35
     );
-
 
     ctx.beginPath();
 
@@ -566,9 +448,7 @@ function drawTree(x, y) {
         Math.PI * 2
     );
 
-
-    ctx.fillStyle =
-        "#176b2c";
+    ctx.fillStyle = "#176b2c";
 
     ctx.fill();
 }
@@ -593,13 +473,9 @@ function drawCar(
 
     ctx.globalAlpha = alpha;
 
-    ctx.translate(
-        x,
-        y
-    );
+    ctx.translate(x, y);
 
     ctx.rotate(angle);
-
 
     drawRoundedRect(
         -w / 2,
@@ -612,10 +488,8 @@ function drawCar(
         isPlayer ? 3 : 2
     );
 
-
     const windowW = 32;
     const windowH = 22;
-
 
     drawRoundedRect(
         -windowW / 2,
@@ -628,20 +502,15 @@ function drawCar(
         1
     );
 
-
     ctx.restore();
 }
 
 
 // ============================================================
-// زر صغير
+// الزر
 // ============================================================
 
-function drawButton(
-    x,
-    y,
-    text
-) {
+function drawButton(x, y, text) {
 
     drawRoundedRect(
         x - 22,
@@ -654,22 +523,13 @@ function drawButton(
         2
     );
 
+    ctx.fillStyle = "#ffffff";
 
-    ctx.fillStyle =
-        "#ffffff";
+    ctx.font = "bold 23px Arial";
 
+    ctx.textAlign = "center";
 
-    ctx.font =
-        "bold 23px Arial";
-
-
-    ctx.textAlign =
-        "center";
-
-
-    ctx.textBaseline =
-        "middle";
-
+    ctx.textBaseline = "middle";
 
     ctx.fillText(
         text,
@@ -680,14 +540,49 @@ function drawButton(
 
 
 // ============================================================
+// مواقع الأزرار
+// ============================================================
+
+function getButtonPositions() {
+
+    const bottomSafe = 18;
+
+    // الاتجاهات يمين
+    const directionY =
+        H - bottomSafe - 22;
+
+    // السرعة يسار وعمودية
+    const speedDownY =
+        H - bottomSafe - 22;
+
+    const speedUpY =
+        speedDownY - 52;
+
+    return {
+
+        directionLeftX: W - 95,
+
+        directionRightX: W - 43,
+
+        directionY: directionY,
+
+        speedX: 35,
+
+        speedUpY: speedUpY,
+
+        speedDownY: speedDownY
+    };
+}
+
+
+// ============================================================
 // رسم الطريق
 // ============================================================
 
 function drawRoad() {
 
-    // العشب يغطي الشاشة كاملة
-    ctx.fillStyle =
-        "#78b85a";
+    // العشب
+    ctx.fillStyle = "#78b85a";
 
     ctx.fillRect(
         0,
@@ -696,10 +591,8 @@ function drawRoad() {
         H
     );
 
-
     // الطريق
-    ctx.fillStyle =
-        "#555555";
+    ctx.fillStyle = "#555555";
 
     ctx.fillRect(
         roadLeft(),
@@ -708,14 +601,12 @@ function drawRoad() {
         H
     );
 
-
-    // الخطوط البيضاء
+    // الخطوط
     for (
         const y of game.lines
     ) {
 
-        ctx.fillStyle =
-            "#ffffff";
+        ctx.fillStyle = "#ffffff";
 
         ctx.fillRect(
             W / 2 -
@@ -725,7 +616,6 @@ function drawRoad() {
             game.lineHeight
         );
     }
-
 
     // الأشجار
     for (
@@ -738,29 +628,22 @@ function drawRoad() {
         );
     }
 
-
     // خط النهاية
-    if (
-        game.finishActive
-    ) {
+    if (game.finishActive) {
 
         const squareRows = 2;
         const squareCols = 12;
-
 
         const squareWidth =
             game.roadWidth /
             squareCols;
 
-
         const rowHeight =
             game.finishHeight /
             squareRows;
 
-
         const left =
             roadLeft();
-
 
         for (
             let row = 0;
@@ -780,7 +663,6 @@ function drawRoad() {
                     )
                     ? "#ffffff"
                     : "#000000";
-
 
                 ctx.fillRect(
                     left +
@@ -802,70 +684,12 @@ function drawRoad() {
 
 
 // ============================================================
-// مواقع الأزرار
-// ============================================================
-
-function getButtonPositions() {
-
-    const bottomSafe = 18;
-
-
-    // أزرار الاتجاه على اليمين
-    const directionY =
-        H -
-        bottomSafe -
-        22;
-
-
-    // أزرار السرعة على اليسار
-    // فوق بعض
-    const speedDownY =
-        H -
-        bottomSafe -
-        22;
-
-
-    const speedUpY =
-        speedDownY -
-        52;
-
-
-    return {
-
-        // الاتجاه
-        directionLeftX:
-            W - 95,
-
-        directionRightX:
-            W - 43,
-
-        directionY:
-            directionY,
-
-
-        // السرعة
-        speedX:
-            35,
-
-        speedUpY:
-            speedUpY,
-
-        speedDownY:
-            speedDownY
-    };
-}
-
-
-// ============================================================
 // واجهة اللعبة
 // ============================================================
 
 function drawUI() {
 
-    // --------------------------------------------------------
     // المسافة
-    // --------------------------------------------------------
-
     drawRoundedRect(
         15,
         17,
@@ -877,22 +701,13 @@ function drawUI() {
         1
     );
 
+    ctx.fillStyle = "#ffffff";
 
-    ctx.fillStyle =
-        "#ffffff";
+    ctx.font = "bold 15px Arial";
 
+    ctx.textAlign = "center";
 
-    ctx.font =
-        "bold 15px Arial";
-
-
-    ctx.textAlign =
-        "center";
-
-
-    ctx.textBaseline =
-        "middle";
-
+    ctx.textBaseline = "middle";
 
     ctx.fillText(
         game.distance.toFixed(3) +
@@ -901,11 +716,7 @@ function drawUI() {
         38
     );
 
-
-    // --------------------------------------------------------
     // الوقت
-    // --------------------------------------------------------
-
     drawRoundedRect(
         15,
         65,
@@ -917,14 +728,9 @@ function drawUI() {
         1
     );
 
+    ctx.fillStyle = "#ffff00";
 
-    ctx.fillStyle =
-        "#ffff00";
-
-
-    ctx.font =
-        "bold 13px Arial";
-
+    ctx.font = "bold 13px Arial";
 
     ctx.fillText(
         formatTime(
@@ -934,26 +740,14 @@ function drawUI() {
         86
     );
 
+    // X
+    ctx.fillStyle = "#ffffff";
 
-    // --------------------------------------------------------
-    // زر X
-    // --------------------------------------------------------
+    ctx.font = "42px Arial";
 
-    ctx.fillStyle =
-        "#ffffff";
+    ctx.textAlign = "center";
 
-
-    ctx.font =
-        "42px Arial";
-
-
-    ctx.textAlign =
-        "center";
-
-
-    ctx.textBaseline =
-        "middle";
-
+    ctx.textBaseline = "middle";
 
     ctx.fillText(
         "×",
@@ -961,34 +755,14 @@ function drawUI() {
         35
     );
 
+    // السرعة
+    ctx.fillStyle = "#ffffff";
 
-    // --------------------------------------------------------
-    // السرعة فوق السيارة
-    // --------------------------------------------------------
+    ctx.font = "bold 18px Arial";
 
-    ctx.fillStyle =
-        "#ffffff";
+    ctx.shadowColor = "#000000";
 
-
-    ctx.font =
-        "bold 18px Arial";
-
-
-    ctx.textAlign =
-        "center";
-
-
-    ctx.textBaseline =
-        "middle";
-
-
-    ctx.shadowColor =
-        "#000000";
-
-
-    ctx.shadowOffsetY =
-        -1;
-
+    ctx.shadowOffsetY = -1;
 
     const speedText =
         game.collisionLocked
@@ -999,40 +773,30 @@ function drawUI() {
             )
         );
 
-
     ctx.fillText(
         speedText,
         game.playerX,
         game.playerY + 28
     );
 
+    ctx.shadowColor = "transparent";
 
-    ctx.shadowColor =
-        "transparent";
+    ctx.shadowOffsetY = 0;
 
-
-    ctx.shadowOffsetY =
-        0;
-
-
-    // --------------------------------------------------------
-    // الأزرار
-    // --------------------------------------------------------
 
     const buttons =
         getButtonPositions();
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // الاتجاهات على اليمين
-    // ========================================================
+    // --------------------------------------------------------
 
     drawButton(
         buttons.directionLeftX,
         buttons.directionY,
         "◀"
     );
-
 
     drawButton(
         buttons.directionRightX,
@@ -1041,17 +805,15 @@ function drawUI() {
     );
 
 
-    // ========================================================
-    // السرعة على اليسار
-    // عموديًا
-    // ========================================================
+    // --------------------------------------------------------
+    // السرعة على اليسار عموديًا
+    // --------------------------------------------------------
 
     drawButton(
         buttons.speedX,
         buttons.speedUpY,
         "↑"
     );
-
 
     drawButton(
         buttons.speedX,
@@ -1064,13 +826,10 @@ function drawUI() {
     // شاشة النهاية
     // --------------------------------------------------------
 
-    if (
-        game.finished
-    ) {
+    if (game.finished) {
 
         ctx.fillStyle =
             "rgba(0,0,0,0.72)";
-
 
         ctx.fillRect(
             0,
@@ -1079,22 +838,13 @@ function drawUI() {
             H
         );
 
+        ctx.textAlign = "center";
 
-        ctx.textAlign =
-            "center";
+        ctx.textBaseline = "middle";
 
+        ctx.fillStyle = "#ffffff";
 
-        ctx.textBaseline =
-            "middle";
-
-
-        ctx.fillStyle =
-            "#ffffff";
-
-
-        ctx.font =
-            "bold 30px Arial";
-
+        ctx.font = "bold 30px Arial";
 
         ctx.fillText(
             game.distance >=
@@ -1105,14 +855,9 @@ function drawUI() {
             H / 2 - 45
         );
 
+        ctx.fillStyle = "#ffffff";
 
-        ctx.fillStyle =
-            "#ffffff";
-
-
-        ctx.font =
-            "bold 20px Arial";
-
+        ctx.font = "bold 20px Arial";
 
         ctx.fillText(
             "المسافة: " +
@@ -1122,14 +867,9 @@ function drawUI() {
             H / 2
         );
 
+        ctx.fillStyle = "#ffff00";
 
-        ctx.fillStyle =
-            "#ffff00";
-
-
-        ctx.font =
-            "bold 22px Arial";
-
+        ctx.font = "bold 22px Arial";
 
         ctx.fillText(
             "الوقت: " +
@@ -1140,14 +880,9 @@ function drawUI() {
             H / 2 + 38
         );
 
+        ctx.fillStyle = "#ffffff";
 
-        ctx.fillStyle =
-            "#ffffff";
-
-
-        ctx.font =
-            "18px Arial";
-
+        ctx.font = "18px Arial";
 
         ctx.fillText(
             "اضغط X لإعادة اللعب",
@@ -1196,13 +931,10 @@ function createTrafficCar(
 
 
 // ============================================================
-// شجرة
+// إنشاء شجرة
 // ============================================================
 
-function createTree(
-    side,
-    y
-) {
+function createTree(side, y) {
 
     const x =
         W / 2 +
@@ -1213,13 +945,9 @@ function createTree(
             rand(-15, 25)
         );
 
-
     return {
-
         side: side,
-
         x: x,
-
         y: y
     };
 }
@@ -1234,10 +962,8 @@ function resetWorld() {
     game.playerX =
         W / 2;
 
-
     game.playerY =
         playerY();
-
 
     game.carRotation = 0;
 
@@ -1247,19 +973,14 @@ function resetWorld() {
         game.playerX;
 
 
-    // --------------------------------------------------------
     // الخطوط
-    // --------------------------------------------------------
-
     game.lines = [];
-
 
     const lineCount =
         Math.ceil(
             H /
             game.lineSpacing
         ) + 5;
-
 
     for (
         let i = 0;
@@ -1275,12 +996,8 @@ function resetWorld() {
     }
 
 
-    // --------------------------------------------------------
     // الأشجار
-    // --------------------------------------------------------
-
     game.trees = [];
-
 
     for (
         const side of [-1, 1]
@@ -1302,26 +1019,16 @@ function resetWorld() {
     }
 
 
-    // --------------------------------------------------------
     // المسارات
-    // --------------------------------------------------------
-
     game.trafficLanes = [
-
         W / 2 - 75,
-
         W / 2,
-
         W / 2 + 75
     ];
 
 
-    // --------------------------------------------------------
-    // سيارات المرور
-    // --------------------------------------------------------
-
+    // السيارات
     game.traffic = [];
-
 
     for (
         let i = 0;
@@ -1330,14 +1037,10 @@ function resetWorld() {
     ) {
 
         const speedOptions = [
-
             rand(20, 40),
-
             rand(40, 70),
-
             rand(70, 100)
         ];
-
 
         const speed =
             speedOptions[
@@ -1347,29 +1050,24 @@ function resetWorld() {
                 )
             ];
 
-
         const lane =
             i % 3;
-
 
         const x =
             game.trafficLanes[
                 lane
             ];
 
-
         const y =
             -200 -
             i * 180 +
             rand(-30, 30);
-
 
         const color =
             game.trafficColors[
                 i %
                 game.trafficColors.length
             ];
-
 
         game.traffic.push(
             createTrafficCar(
@@ -1390,29 +1088,20 @@ function resetWorld() {
 
 function update(dt) {
 
-    if (
-        dt > 0.05
-    ) {
-
+    if (dt > 0.05) {
         dt = 0.05;
     }
 
 
-    // --------------------------------------------------------
     // الوقت
-    // --------------------------------------------------------
-
-    if (
-        !game.finished
-    ) {
-
+    if (!game.finished) {
         game.elapsed += dt;
     }
 
 
-    // --------------------------------------------------------
-    // التحكم بالسرعة
-    // --------------------------------------------------------
+    // ========================================================
+    // السرعة
+    // ========================================================
 
     if (
         !game.collisionLocked &&
@@ -1425,7 +1114,6 @@ function update(dt) {
         ) {
 
             game.speedHoldTimer += dt;
-
 
             while (
                 game.speedHoldTimer >=
@@ -1468,9 +1156,7 @@ function update(dt) {
                     game.speed * 4;
 
 
-                if (
-                    game.speed <= 0
-                ) {
+                if (game.speed <= 0) {
 
                     game.speed = 0;
 
@@ -1487,17 +1173,13 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // المسافة
-    // --------------------------------------------------------
+    // ========================================================
 
-    if (
-        !game.finished
-    ) {
+    if (!game.finished) {
 
-        if (
-            !game.finishActive
-        ) {
+        if (!game.finishActive) {
 
             game.distance +=
                 (
@@ -1516,14 +1198,10 @@ function update(dt) {
             game.distance =
                 game.maxDistance;
 
-
-            game.finishActive =
-                true;
-
+            game.finishActive = true;
 
             game.finishY =
                 -game.finishHeight;
-
 
             game.moveLeft = false;
 
@@ -1538,13 +1216,11 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // النهاية
-    // --------------------------------------------------------
+    // ========================================================
 
-    if (
-        game.finished
-    ) {
+    if (game.finished) {
 
         game.speed = 0;
 
@@ -1564,13 +1240,11 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
-    // التصادم المؤقت
-    // --------------------------------------------------------
+    // ========================================================
+    // التصادم
+    // ========================================================
 
-    if (
-        game.collisionCooldown > 0
-    ) {
+    if (game.collisionCooldown > 0) {
 
         game.collisionCooldown =
             Math.max(
@@ -1581,9 +1255,7 @@ function update(dt) {
     }
 
 
-    if (
-        game.collisionLocked
-    ) {
+    if (game.collisionLocked) {
 
         game.speed = 0;
 
@@ -1597,7 +1269,6 @@ function update(dt) {
 
         game.playerX =
             game.savedCarX;
-
 
         game.flashTimer += dt;
 
@@ -1631,19 +1302,16 @@ function update(dt) {
             game.targetRotation = 0;
         }
 
-
         return;
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // حركة الطريق
-    // --------------------------------------------------------
+    // ========================================================
 
     const move =
-        game.speedMotion *
-        dt;
-
+        game.speedMotion * dt;
 
     const totalSpan =
         game.lines.length *
@@ -1658,7 +1326,6 @@ function update(dt) {
 
         game.lines[i] += move;
 
-
         if (
             game.lines[i] >
             H + 100
@@ -1670,9 +1337,9 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // خط النهاية
-    // --------------------------------------------------------
+    // ========================================================
 
     if (
         game.finishActive &&
@@ -1707,7 +1374,6 @@ function update(dt) {
                 carFrontY -
                 game.finishHeight;
 
-
             game.finished = true;
 
             game.speed = 0;
@@ -1727,16 +1393,15 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // الأشجار
-    // --------------------------------------------------------
+    // ========================================================
 
     for (
         const t of game.trees
     ) {
 
         t.y += move;
-
 
         if (
             t.y >
@@ -1750,39 +1415,31 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // سيارات المرور
-    // --------------------------------------------------------
+    // ========================================================
 
     for (
         const t of game.traffic
     ) {
 
-        if (
-            !t.avoiding
-        ) {
-
+        if (!t.avoiding) {
             t.currentSpeed =
                 t.baseSpeed;
         }
 
-
         t.timer += dt;
 
 
-        if (
-            t.timer > 5
-        ) {
+        if (t.timer > 5) {
 
             t.timer = 0;
-
 
             const change =
                 rand(
                     -0.08,
                     0.08
                 );
-
 
             t.baseSpeed =
                 clamp(
@@ -1808,7 +1465,6 @@ function update(dt) {
                 other === t ||
                 other.lane !== t.lane
             ) {
-
                 continue;
             }
 
@@ -1866,7 +1522,6 @@ function update(dt) {
 
             t.avoiding = false;
 
-
             t.currentSpeed +=
                 (
                     t.baseSpeed -
@@ -1890,7 +1545,6 @@ function update(dt) {
             dt;
 
 
-        // إعادة السيارة
         if (
             t.y >
             H + 140
@@ -1902,8 +1556,7 @@ function update(dt) {
                 );
 
 
-            let highestY =
-                -300;
+            let highestY = -300;
 
 
             if (
@@ -1942,9 +1595,7 @@ function update(dt) {
                 );
 
 
-            if (
-                newLane < 0
-            ) {
+            if (newLane < 0) {
 
                 newLane =
                     Math.floor(
@@ -1954,18 +1605,13 @@ function update(dt) {
 
 
             const speedOptions = [
-
                 rand(20, 40),
-
                 rand(40, 70),
-
                 rand(70, 100)
             ];
 
 
-            t.lane =
-                newLane;
-
+            t.lane = newLane;
 
             t.baseSpeed =
                 speedOptions[
@@ -1975,19 +1621,15 @@ function update(dt) {
                     )
                 ];
 
-
             t.currentSpeed =
                 t.baseSpeed;
 
-
             t.avoiding = false;
-
 
             t.x =
                 game.trafficLanes[
                     newLane
                 ];
-
 
             t.y =
                 highestY -
@@ -1996,9 +1638,9 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
+    // ========================================================
     // فحص التصادم
-    // --------------------------------------------------------
+    // ========================================================
 
     if (
         !game.collisionLocked &&
@@ -2009,59 +1651,42 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
-    // حركة السيارة يمين ويسار
-    // --------------------------------------------------------
+    // ========================================================
+    // حركة السيارة
+    // ========================================================
 
     if (
         game.speed > 0 &&
         !game.collisionLocked
     ) {
 
-        if (
-            game.moveLeft
-        ) {
+        if (game.moveLeft) {
 
             game.targetRotation =
                 -0.12;
 
-        }
-
-        else if (
-            game.moveRight
-        ) {
+        } else if (game.moveRight) {
 
             game.targetRotation =
                 0.12;
 
-        }
-
-        else {
+        } else {
 
             game.targetRotation =
                 0;
         }
 
 
-        const lateralSpeed =
-            190;
-
+        const lateralSpeed = 190;
 
         let direction = 0;
 
 
-        if (
-            game.moveLeft
-        ) {
-
+        if (game.moveLeft) {
             direction = -1;
         }
 
-
-        if (
-            game.moveRight
-        ) {
-
+        if (game.moveRight) {
             direction = 1;
         }
 
@@ -2103,9 +1728,7 @@ function update(dt) {
                 dt * 10
             );
 
-    }
-
-    else {
+    } else {
 
         game.carRotation = 0;
     }
@@ -2140,7 +1763,6 @@ function checkCollisions() {
             Math.abs(
                 px - t.x
             );
-
 
         const dy =
             Math.abs(
@@ -2185,8 +1807,7 @@ function startCollision(t) {
 
     game.speedMotion = 0;
 
-    game.collisionLocked =
-        true;
+    game.collisionLocked = true;
 
     game.collisionTimer =
         game.collisionLockTime;
@@ -2198,6 +1819,12 @@ function startCollision(t) {
     game.moveLeft = false;
 
     game.moveRight = false;
+
+    game.speedUpHeld = false;
+
+    game.speedDownHeld = false;
+
+    game.speedHoldTimer = 0;
 
     game.savedCarX =
         game.playerX;
@@ -2268,8 +1895,7 @@ function loop(now) {
         ) / 1000;
 
 
-    game.lastTime =
-        now;
+    game.lastTime = now;
 
 
     if (
@@ -2285,7 +1911,6 @@ function loop(now) {
 
     draw();
 
-
     requestAnimationFrame(loop);
 }
 
@@ -2294,17 +1919,10 @@ function loop(now) {
 // تحويل اللمس
 // ============================================================
 
-function pointFromEvent(e) {
+function getTouchPoint(touch) {
 
     const rect =
         canvas.getBoundingClientRect();
-
-
-    const touch =
-        e.touches
-        ? e.touches[0]
-        : e;
-
 
     return {
 
@@ -2320,7 +1938,7 @@ function pointFromEvent(e) {
 
 
 // ============================================================
-// منطقة لمس الأزرار
+// منطقة لمس الزر
 // ============================================================
 
 function isButtonHit(
@@ -2346,237 +1964,17 @@ function isButtonHit(
 
 
 // ============================================================
-// بداية الضغط
+// Multi-Touch
 // ============================================================
 
-function handleStart(
-    x,
-    y
-) {
-
-    // --------------------------------------------------------
-    // زر X
-    // --------------------------------------------------------
-
-    if (
-        x > W - 90 &&
-        y < 90
-    ) {
-
-        if (
-            game.finished
-        ) {
-
-            restart();
-
-        }
-
-        else {
-
-            game.finished = true;
-
-            game.speed = 0;
-
-            game.speedMotion = 0;
-
-            game.moveLeft = false;
-
-            game.moveRight = false;
-
-            game.speedUpHeld = false;
-
-            game.speedDownHeld = false;
-
-            game.speedHoldTimer = 0;
-
-            game.collisionLocked = false;
-
-            game.collisionTimer = 0;
-
-            game.collisionCooldown = 0;
-        }
-
-
-        return;
-    }
-
-
-    if (
-        game.finished
-    ) {
-
-        return;
-    }
-
-
-    const buttons =
-        getButtonPositions();
-
-
-    // ========================================================
-    // الاتجاه يسار
-    // ========================================================
-
-    if (
-        isButtonHit(
-            x,
-            y,
-            buttons.directionLeftX,
-            buttons.directionY
-        )
-    ) {
-
-        if (
-            !game.collisionLocked &&
-            game.speed > 0
-        ) {
-
-            game.moveLeft = true;
-
-            game.moveRight = false;
-        }
-    }
-
-
-    // ========================================================
-    // الاتجاه يمين
-    // ========================================================
-
-    else if (
-        isButtonHit(
-            x,
-            y,
-            buttons.directionRightX,
-            buttons.directionY
-        )
-    ) {
-
-        if (
-            !game.collisionLocked &&
-            game.speed > 0
-        ) {
-
-            game.moveRight = true;
-
-            game.moveLeft = false;
-        }
-    }
-
-
-    // ========================================================
-    // زيادة السرعة
-    // ========================================================
-
-    else if (
-        isButtonHit(
-            x,
-            y,
-            buttons.speedX,
-            buttons.speedUpY
-        )
-    ) {
-
-        if (
-            !game.collisionLocked
-        ) {
-
-            game.speedUpHeld = true;
-
-            game.speedDownHeld = false;
-
-            game.speedHoldTimer = 0;
-
-
-            game.speed =
-                Math.min(
-                    game.maxSpeed,
-                    game.speed +
-                    game.speedStep
-                );
-
-
-            game.speedMotion =
-                game.speed * 4;
-        }
-    }
-
-
-    // ========================================================
-    // خفض السرعة
-    // ========================================================
-
-    else if (
-        isButtonHit(
-            x,
-            y,
-            buttons.speedX,
-            buttons.speedDownY
-        )
-    ) {
-
-        if (
-            !game.collisionLocked
-        ) {
-
-            game.speedDownHeld = true;
-
-            game.speedUpHeld = false;
-
-            game.speedHoldTimer = 0;
-
-
-            game.speed =
-                Math.max(
-                    game.minSpeed,
-                    game.speed -
-                    game.speedStep
-                );
-
-
-            if (
-                game.speed <= 0
-            ) {
-
-                game.speed = 0;
-
-                game.speedMotion = 0;
-
-                game.moveLeft = false;
-
-                game.moveRight = false;
-
-                game.carRotation = 0;
-
-            }
-
-            else {
-
-                game.speedMotion =
-                    game.speed * 4;
-            }
-        }
-    }
-}
+const activeTouches = new Map();
 
 
 // ============================================================
-// حركة الإصبع
+// معرفة الزر المضغوط
 // ============================================================
 
-function handleMove(
-    x,
-    y
-) {
-
-    if (
-        game.finished ||
-        game.collisionLocked ||
-        game.speed <= 0
-    ) {
-
-        return;
-    }
-
+function getTouchedButton(x, y) {
 
     const buttons =
         getButtonPositions();
@@ -2591,15 +1989,12 @@ function handleMove(
             buttons.directionY
         )
     ) {
-
-        game.moveLeft = true;
-
-        game.moveRight = false;
+        return "left";
     }
 
 
     // يمين
-    else if (
+    if (
         isButtonHit(
             x,
             y,
@@ -2607,109 +2002,187 @@ function handleMove(
             buttons.directionY
         )
     ) {
+        return "right";
+    }
 
-        game.moveRight = true;
 
-        game.moveLeft = false;
+    // زيادة السرعة
+    if (
+        isButtonHit(
+            x,
+            y,
+            buttons.speedX,
+            buttons.speedUpY
+        )
+    ) {
+        return "speedUp";
+    }
+
+
+    // خفض السرعة
+    if (
+        isButtonHit(
+            x,
+            y,
+            buttons.speedX,
+            buttons.speedDownY
+        )
+    ) {
+        return "speedDown";
+    }
+
+
+    return null;
+}
+
+
+// ============================================================
+// تحديث جميع اللمسات
+// ============================================================
+
+function updateTouchControls() {
+
+    let left = false;
+
+    let right = false;
+
+    let speedUp = false;
+
+    let speedDown = false;
+
+
+    for (
+        const button of activeTouches.values()
+    ) {
+
+        if (button === "left") {
+
+            left = true;
+
+        } else if (button === "right") {
+
+            right = true;
+
+        } else if (button === "speedUp") {
+
+            speedUp = true;
+
+        } else if (button === "speedDown") {
+
+            speedDown = true;
+        }
+    }
+
+
+    // الاتجاه
+    game.moveLeft =
+        left && !right;
+
+    game.moveRight =
+        right && !left;
+
+
+    // السرعة
+    game.speedUpHeld =
+        speedUp && !speedDown;
+
+    game.speedDownHeld =
+        speedDown && !speedUp;
+
+
+    if (
+        !game.speedUpHeld &&
+        !game.speedDownHeld
+    ) {
+
+        game.speedHoldTimer = 0;
     }
 }
 
 
 // ============================================================
-// نهاية الضغط
-// ============================================================
-
-function handleEnd() {
-
-    game.moveLeft = false;
-
-    game.moveRight = false;
-
-    game.speedUpHeld = false;
-
-    game.speedDownHeld = false;
-
-    game.speedHoldTimer = 0;
-}
-
-
-// ============================================================
-// إعادة اللعب
-// ============================================================
-
-function restart() {
-
-    game.speed = 60;
-
-    game.speedMotion = 240;
-
-    game.distance = 0;
-
-    game.elapsed = 0;
-
-    game.finished = false;
-
-    game.finishActive = false;
-
-    game.finishHeight = 28;
-
-    game.finishY =
-        -game.finishHeight;
-
-    game.collisionLocked = false;
-
-    game.collisionTimer = 0;
-
-    game.collisionCooldown = 0;
-
-    game.flashOn = true;
-
-    game.moveLeft = false;
-
-    game.moveRight = false;
-
-    game.speedUpHeld = false;
-
-    game.speedDownHeld = false;
-
-    game.speedHoldTimer = 0;
-
-    game.carRotation = 0;
-
-    game.targetRotation = 0;
-
-    game.playerX =
-        W / 2;
-
-    game.playerY =
-        playerY();
-
-    game.savedCarX =
-        game.playerX;
-
-
-    resetWorld();
-}
-
-
-// ============================================================
-// Touch
+// Touch Start
 // ============================================================
 
 canvas.addEventListener(
     "touchstart",
-    e => {
+    function(e) {
 
         e.preventDefault();
 
-        const p =
-            pointFromEvent(e);
+
+        for (
+            const touch of e.changedTouches
+        ) {
+
+            const p =
+                getTouchPoint(touch);
 
 
-        handleStart(
-            p.x,
-            p.y
-        );
+            // زر X
+            if (
+                p.x > W - 90 &&
+                p.y < 90
+            ) {
+
+                if (game.finished) {
+
+                    restart();
+
+                } else {
+
+                    game.finished = true;
+
+                    game.speed = 0;
+
+                    game.speedMotion = 0;
+
+                    game.moveLeft = false;
+
+                    game.moveRight = false;
+
+                    game.speedUpHeld = false;
+
+                    game.speedDownHeld = false;
+
+                    game.speedHoldTimer = 0;
+
+                    game.collisionLocked = false;
+
+                    game.collisionTimer = 0;
+
+                    game.collisionCooldown = 0;
+
+                    activeTouches.clear();
+                }
+
+                continue;
+            }
+
+
+            if (game.finished) {
+                continue;
+            }
+
+
+            const button =
+                getTouchedButton(
+                    p.x,
+                    p.y
+                );
+
+
+            if (button) {
+
+                activeTouches.set(
+                    touch.identifier,
+                    button
+                );
+            }
+        }
+
+
+        updateTouchControls();
 
     },
     {
@@ -2717,21 +2190,59 @@ canvas.addEventListener(
     }
 );
 
+
+// ============================================================
+// Touch Move
+// ============================================================
 
 canvas.addEventListener(
     "touchmove",
-    e => {
+    function(e) {
 
         e.preventDefault();
 
-        const p =
-            pointFromEvent(e);
+
+        for (
+            const touch of e.changedTouches
+        ) {
+
+            if (
+                !activeTouches.has(
+                    touch.identifier
+                )
+            ) {
+                continue;
+            }
 
 
-        handleMove(
-            p.x,
-            p.y
-        );
+            const p =
+                getTouchPoint(touch);
+
+
+            const button =
+                getTouchedButton(
+                    p.x,
+                    p.y
+                );
+
+
+            if (button) {
+
+                activeTouches.set(
+                    touch.identifier,
+                    button
+                );
+
+            } else {
+
+                activeTouches.delete(
+                    touch.identifier
+                );
+            }
+        }
+
+
+        updateTouchControls();
 
     },
     {
@@ -2740,13 +2251,58 @@ canvas.addEventListener(
 );
 
 
+// ============================================================
+// Touch End
+// ============================================================
+
 canvas.addEventListener(
     "touchend",
-    e => {
+    function(e) {
 
         e.preventDefault();
 
-        handleEnd();
+
+        for (
+            const touch of e.changedTouches
+        ) {
+
+            activeTouches.delete(
+                touch.identifier
+            );
+        }
+
+
+        updateTouchControls();
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+// ============================================================
+// Touch Cancel
+// ============================================================
+
+canvas.addEventListener(
+    "touchcancel",
+    function(e) {
+
+        e.preventDefault();
+
+
+        for (
+            const touch of e.changedTouches
+        ) {
+
+            activeTouches.delete(
+                touch.identifier
+            );
+        }
+
+
+        updateTouchControls();
 
     },
     {
@@ -2761,46 +2317,85 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "mousedown",
-    e => {
+    function(e) {
 
         e.preventDefault();
 
-        handleStart(
-            e.offsetX,
-            e.offsetY
-        );
+        const button =
+            getTouchedButton(
+                e.offsetX,
+                e.offsetY
+            );
+
+        if (button) {
+
+            activeTouches.set(
+                "mouse",
+                button
+            );
+
+            updateTouchControls();
+        }
     }
 );
 
 
 canvas.addEventListener(
     "mousemove",
-    e => {
+    function(e) {
 
-        if (e.buttons) {
+        if (!e.buttons) {
+            return;
+        }
 
-            handleMove(
+
+        const button =
+            getTouchedButton(
                 e.offsetX,
                 e.offsetY
             );
+
+
+        if (button) {
+
+            activeTouches.set(
+                "mouse",
+                button
+            );
+
+        } else {
+
+            activeTouches.delete(
+                "mouse"
+            );
         }
+
+
+        updateTouchControls();
     }
 );
 
 
 window.addEventListener(
     "mouseup",
-    handleEnd
+    function() {
+
+        activeTouches.delete(
+            "mouse"
+        );
+
+        updateTouchControls();
+    }
 );
 
 
 // ============================================================
-// Keyboard
+// لوحة المفاتيح
 // ============================================================
 
 window.addEventListener(
     "keydown",
-    e => {
+    function(e) {
 
         if (
             e.key === "ArrowLeft"
@@ -2858,7 +2453,7 @@ window.addEventListener(
 
 window.addEventListener(
     "keyup",
-    e => {
+    function(e) {
 
         if (
             e.key === "ArrowLeft" ||
@@ -2894,7 +2489,7 @@ window.addEventListener(
 
 
 // ============================================================
-// تغيير حجم الشاشة
+// تغيير الحجم
 // ============================================================
 
 window.addEventListener(
@@ -2902,16 +2497,13 @@ window.addEventListener(
     resize
 );
 
-
 window.addEventListener(
     "orientationchange",
     resize
 );
 
 
-if (
-    window.visualViewport
-) {
+if (window.visualViewport) {
 
     window.visualViewport.addEventListener(
         "resize",
