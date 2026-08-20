@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 
-<!-- viewport محسن للشاشات الصغيرة -->
+<!-- viewport محسن للشاشات الصغيرة مع إخفاء شريط التنقل -->
 <meta name="viewport"
 content="width=device-width,
 initial-scale=1.0,
@@ -11,6 +11,7 @@ maximum-scale=1.0,
 user-scalable=no,
 viewport-fit=cover">
 
+<!-- إضافة هذه الميتا تاج لإخفاء شريط التنقل في Safari -->
 <meta name="apple-mobile-web-app-capable"
 content="yes">
 
@@ -41,31 +42,49 @@ body {
     padding: 0;
     width: 100%;
     height: 100%;
+    /* منع التمرير */
     overflow: hidden;
     background: #78b85a;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     overscroll-behavior: none;
+    /* منع سحب الصفحة في Safari */
+    position: fixed;
+    inset: 0;
 }
 
 body {
     position: fixed;
     inset: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    /* دعم iPhone مع notch */
+    height: 100dvh;
+    /* إضافة padding للأسفل لتغطية الشريط السفلي */
+    padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    overflow: hidden;
+    background: #78b85a;
 }
 
 canvas {
     display: block;
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
     margin: 0;
     padding: 0;
     border: 0;
+    /* منع أي تأثيرات خارجية */
+    z-index: 1;
+}
+
+/* إضافة ستايل لإخفاء شريط التمرير في iOS */
+::-webkit-scrollbar {
+    display: none;
 }
 
 </style>
@@ -79,22 +98,16 @@ canvas {
 
 "use strict";
 
-
 // ============================================
 // Canvas
 // ============================================
 
-const canvas =
-    document.getElementById("game");
-
-const ctx =
-    canvas.getContext("2d");
-
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
 let W = 0;
 let H = 0;
 let dpr = 1;
-
 
 // ============================================
 // تغيير حجم الشاشة - محسن للغاية
@@ -105,7 +118,7 @@ function resize() {
     let width = window.innerWidth;
     let height = window.innerHeight;
     
-    // في Pythonista 3، نستخدم visualViewport للحصول على الأبعاد الصحيحة
+    // في Pythonista 3 و Safari، نستخدم visualViewport للحصول على الأبعاد الصحيحة
     if (window.visualViewport) {
         width = window.visualViewport.width;
         height = window.visualViewport.height;
@@ -126,11 +139,10 @@ function resize() {
     // إعادة ضبط التحويلات لتتناسب مع الحجم الجديد
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     
-    // تحديث موقع السيارة إذا كانت اللعبة قيد التشغيل
+    // تحديث موقع السيارة
     if (game) {
         game.playerY = playerY();
         if (!game.finished && !game.collisionLocked) {
-            // إذا كانت السيارة خارج حدود الطريق، نعيدها للمنتصف
             const leftLimit = roadLeft() + game.carWidth / 2 + 5;
             const rightLimit = roadRight() - game.carWidth / 2 - 5;
             if (game.playerX < leftLimit || game.playerX > rightLimit) {
@@ -142,13 +154,13 @@ function resize() {
 
 // الاستماع لتغيرات الحجم
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", resize);
 if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", resize);
 }
 
 // التنفيذ الأولي
-resize();
-
+setTimeout(resize, 100);
 
 // ============================================
 // محاولة تشغيل وضع الشاشة الكاملة
@@ -164,7 +176,6 @@ function requestGameFullscreen() {
 }
 
 document.addEventListener("touchstart", requestGameFullscreen, { once: true, passive: true });
-
 
 // ============================================
 // إعدادات اللعبة
