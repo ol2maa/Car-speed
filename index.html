@@ -633,7 +633,7 @@ function drawRoad() {
     // ============================================
     if (game.finished) {
 
-        const finishY = H * 0.42;
+        const finishY = game.playerY - game.carHeight / 2 - 5;
         const finishHeight = 28;
         const squareWidth = game.roadWidth / 10;
         const left = roadLeft();
