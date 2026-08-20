@@ -63,159 +63,6 @@ canvas {
 
 "use strict";
 
-// ============================================
-// نظام الصوت - Web Audio API
-// ============================================
-
-class CarAudio {
-    constructor() {
-        this.audioCtx = null;
-        this.gainNode = null;
-        this.oscillator = null;
-        this.filterNode = null;
-        this.isPlaying = false;
-        this.isInitialized = false;
-        this.targetVolume = 0;
-        this.currentVolume = 0;
-        this.targetFrequency = 60;
-        this.currentFrequency = 60;
-        this.isEngineOn = false;
-    }
-
-    // تهيئة الصوت (يتم استدعاؤها عند أول لمسة)
-    init() {
-        if (this.isInitialized) return;
-        
-        try {
-            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // عقدة التحكم بالصوت الرئيسية
-            this.gainNode = this.audioCtx.createGain();
-            this.gainNode.gain.value = 0;
-            this.gainNode.connect(this.audioCtx.destination);
-            
-            // مرشح لتحسين الصوت
-            this.filterNode = this.audioCtx.createBiquadFilter();
-            this.filterNode.type = 'lowpass';
-            this.filterNode.frequency.value = 800;
-            this.filterNode.Q.value = 5;
-            this.filterNode.connect(this.gainNode);
-            
-            // مذبذب أساسي
-            this.oscillator = this.audioCtx.createOscillator();
-            this.oscillator.type = 'sawtooth';
-            this.oscillator.frequency.value = 60;
-            this.oscillator.connect(this.filterNode);
-            
-            // مذبذب ثانوي لإضافة عمق للصوت
-            this.oscillator2 = this.audioCtx.createOscillator();
-            this.oscillator2.type = 'square';
-            this.oscillator2.frequency.value = 30;
-            this.oscillator2.connect(this.filterNode);
-            
-            // بدء المذبذبات
-            this.oscillator.start();
-            this.oscillator2.start();
-            
-            this.isInitialized = true;
-            this.isEngineOn = true;
-            
-            console.log('🎵 نظام الصوت مهيأ');
-        } catch (e) {
-            console.warn('⚠️ تعذر تهيئة الصوت:', e);
-        }
-    }
-
-    // تحديث الصوت بناءً على السرعة
-    updateSpeed(speed) {
-        if (!this.isInitialized) return;
-        if (!this.isEngineOn) {
-            this.targetVolume = 0;
-            this.targetFrequency = 60;
-            return;
-        }
-        
-        // السرعة القصوى 300 كم/ساعة
-        const normalizedSpeed = Math.min(speed / 300, 1);
-        
-        // الصوت: من 0 إلى 0.3 (منخفض لتجنب الإزعاج)
-        this.targetVolume = normalizedSpeed * 0.25;
-        
-        // التردد: من 60 إلى 220 هرتز (محاكاة صوت محرك)
-        this.targetFrequency = 60 + (normalizedSpeed * 160);
-        
-        // إذا كانت السرعة 0، صامت
-        if (speed <= 0) {
-            this.targetVolume = 0;
-            this.targetFrequency = 60;
-        }
-    }
-
-    // تشغيل المحرك
-    startEngine() {
-        if (!this.isInitialized) return;
-        if (this.isEngineOn) return;
-        
-        this.isEngineOn = true;
-        this.targetVolume = 0.1;
-        this.targetFrequency = 70;
-        
-        // استئناف السياق الصوتي (لـ iPhone)
-        if (this.audioCtx && this.audioCtx.state === 'suspended') {
-            this.audioCtx.resume();
-        }
-    }
-
-    // إيقاف المحرك
-    stopEngine() {
-        if (!this.isInitialized) return;
-        this.isEngineOn = false;
-        this.targetVolume = 0;
-        this.targetFrequency = 60;
-    }
-
-    // تحديث تدريجي للصوت (يتم استدعاؤه في كل إطار)
-    update(dt) {
-        if (!this.isInitialized) return;
-        
-        // التحكم السلس في الصوت والتردد
-        this.currentVolume += (this.targetVolume - this.currentVolume) * Math.min(1, dt * 8);
-        this.currentFrequency += (this.targetFrequency - this.currentFrequency) * Math.min(1, dt * 8);
-        
-        // تحديث العقد
-        if (this.gainNode) {
-            this.gainNode.gain.value = this.currentVolume;
-        }
-        
-        if (this.oscillator) {
-            this.oscillator.frequency.value = this.currentFrequency;
-        }
-        
-        if (this.oscillator2) {
-            this.oscillator2.frequency.value = this.currentFrequency * 0.5;
-        }
-        
-        // تحديث مرشح الصوت
-        if (this.filterNode) {
-            const freq = 200 + (this.currentFrequency * 3);
-            this.filterNode.frequency.value = Math.min(freq, 2000);
-        }
-    }
-
-    // تفعيل الصوت (لـ iPhone - يستدعى عند أول لمسة)
-    activate() {
-        this.init();
-        if (this.audioCtx && this.audioCtx.state === 'suspended') {
-            this.audioCtx.resume();
-        }
-        this.isEngineOn = true;
-        this.targetVolume = 0.1;
-        this.targetFrequency = 70;
-    }
-}
-
-// إنشاء نظام الصوت
-const carAudio = new CarAudio();
 
 // ============================================
 // Canvas
@@ -292,7 +139,7 @@ resize();
 const game = {
 
     // السرعة
-    speed: 0,
+    speed: 60,
 
     minSpeed: 0,
 
@@ -300,7 +147,7 @@ const game = {
 
     speedStep: 10,
 
-    speedMotion: 0,
+    speedMotion: 240,
 
 
     // المسافة
@@ -315,9 +162,6 @@ const game = {
 
     // حالة اللعبة
     finished: false,
-
-    // هل بدأت اللعبة؟
-    started: false,
 
 
     // ========================================
@@ -457,6 +301,13 @@ function roadRight() {
 
 // ============================================
 // مكان السيارة الرئيسي
+// ============================================
+//
+// مهم:
+// السيارة مثبتة في الأسفل بشكل صريح.
+//
+// مركز السيارة = 110 بكسل فوق أسفل الشاشة.
+// هذا يمنع ظهورها في منتصف الشاشة.
 // ============================================
 
 function playerY() {
@@ -1281,39 +1132,6 @@ function resetWorld() {
 
 
 // ============================================
-// تحديث الصوت
-// ============================================
-
-function updateAudio() {
-    // إذا كانت اللعبة منتهية أو متوقفة
-    if (game.finished) {
-        carAudio.stopEngine();
-        return;
-    }
-    
-    // إذا كان التصادم مقفلاً
-    if (game.collisionLocked) {
-        carAudio.stopEngine();
-        return;
-    }
-    
-    // إذا لم تبدأ اللعبة بعد (السرعة 0 ولم يتم الضغط على أي زر)
-    if (!game.started && game.speed === 0) {
-        carAudio.stopEngine();
-        return;
-    }
-    
-    // إذا بدأت اللعبة أو السرعة > 0
-    if (game.started || game.speed > 0) {
-        carAudio.startEngine();
-        carAudio.updateSpeed(game.speed);
-    } else {
-        carAudio.stopEngine();
-    }
-}
-
-
-// ============================================
 // تحديث اللعبة
 // ============================================
 
@@ -1323,13 +1141,6 @@ function update(dt) {
 
         dt = 0.05;
     }
-
-
-    // ========================================
-    // تحديث الصوت (في كل إطار)
-    // ========================================
-    carAudio.update(dt);
-    updateAudio();
 
 
     // ========================================
@@ -1380,12 +1191,6 @@ function update(dt) {
                             game.speedStep
                         );
 
-                    // بدء المحرك عند أول زيادة في السرعة
-                    if (game.speed > 0 && !game.started) {
-                        game.started = true;
-                        carAudio.startEngine();
-                    }
-
                 } else if (
                     game.speedDownHeld &&
                     !game.speedUpHeld
@@ -1418,9 +1223,6 @@ function update(dt) {
                     game.moveRight = false;
 
                     game.carRotation = 0;
-                    
-                    // إيقاف الصوت عند السرعة 0
-                    carAudio.stopEngine();
                 }
             }
         }
@@ -1472,9 +1274,6 @@ function update(dt) {
 
 
             game.collisionLocked = false;
-            
-            // إيقاف الصوت
-            carAudio.stopEngine();
         }
     }
 
@@ -1574,11 +1373,6 @@ function update(dt) {
             game.carRotation = 0;
 
             game.targetRotation = 0;
-            
-            // إعادة تشغيل الصوت إذا كانت السرعة > 0
-            if (game.speed > 0) {
-                carAudio.startEngine();
-            }
         }
 
 
@@ -2086,9 +1880,6 @@ function startCollision(t) {
 
     // إبعاد السيارة الأخرى
     t.y -= 95;
-    
-    // إيقاف الصوت عند التصادم
-    carAudio.stopEngine();
 }
 
 
@@ -2121,4 +1912,699 @@ function draw() {
     // ========================================
 
     const alpha =
-        game.collisionLocked
+        game.collisionLocked &&
+        !game.flashOn
+            ? 0.45
+            : 1;
+
+
+    drawCar(
+        game.playerX,
+        game.playerY,
+        game.carWidth,
+        game.carHeight,
+        "#e53935",
+        game.carRotation,
+        true,
+        alpha
+    );
+
+
+    drawUI();
+}
+
+
+// ============================================
+// حلقة اللعبة
+// ============================================
+
+function loop(now) {
+
+    let dt =
+        (
+            now -
+            game.lastTime
+        ) / 1000;
+
+
+    game.lastTime =
+        now;
+
+
+    if (
+        !Number.isFinite(dt) ||
+        dt > 0.05
+    ) {
+
+        dt = 0.05;
+    }
+
+
+    update(dt);
+
+    draw();
+
+
+    requestAnimationFrame(
+        loop
+    );
+}
+
+
+// ============================================
+// تحويل اللمس إلى إحداثيات
+// ============================================
+
+function pointFromEvent(e) {
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+
+    const touch =
+        e.touches
+            ? e.touches[0]
+            : e;
+
+
+    return {
+
+        x:
+            touch.clientX -
+            rect.left,
+
+        y:
+            touch.clientY -
+            rect.top
+    };
+}
+
+
+// ============================================
+// فحص الضغط على زر
+// ============================================
+
+function isButtonHit(
+    x,
+    y,
+    cx,
+    cy
+) {
+
+    return (
+        Math.abs(x - cx) <= 34 &&
+        Math.abs(y - cy) <= 34
+    );
+}
+
+
+// ============================================
+// بداية الضغط
+// ============================================
+
+function handleStart(
+    x,
+    y
+) {
+
+    // ========================================
+    // زر X
+    //
+    // أثناء اللعب:
+    // إنهاء اللعبة
+    //
+    // بعد النهاية:
+    // إعادة اللعب
+    // ========================================
+
+    if (
+        x > W - 90 &&
+        y < 90
+    ) {
+
+        if (
+            game.finished
+        ) {
+
+            restart();
+
+        } else {
+
+            game.finished =
+                true;
+
+
+            game.speed = 0;
+
+            game.speedMotion = 0;
+
+
+            game.moveLeft = false;
+
+            game.moveRight = false;
+
+
+            game.speedUpHeld = false;
+
+            game.speedDownHeld = false;
+
+
+            game.speedHoldTimer = 0;
+
+
+            game.collisionLocked =
+                false;
+
+
+            game.collisionTimer = 0;
+
+            game.collisionCooldown = 0;
+        }
+
+
+        return;
+    }
+
+
+    // ========================================
+    // بعد انتهاء اللعبة
+    // لا تعمل الأزرار الأخرى
+    // ========================================
+
+    if (
+        game.finished
+    ) {
+
+        return;
+    }
+
+
+    // ========================================
+    // يسار
+    // ========================================
+
+    if (
+        isButtonHit(
+            x,
+            y,
+            W - 115,
+            H - 85
+        )
+    ) {
+
+        if (
+            !game.collisionLocked &&
+            game.speed > 0
+        ) {
+
+            game.moveLeft = true;
+
+            game.moveRight = false;
+        }
+    }
+
+
+    // ========================================
+    // يمين
+    // ========================================
+
+    else if (
+        isButtonHit(
+            x,
+            y,
+            W - 45,
+            H - 85
+        )
+    ) {
+
+        if (
+            !game.collisionLocked &&
+            game.speed > 0
+        ) {
+
+            game.moveRight = true;
+
+            game.moveLeft = false;
+        }
+    }
+
+
+    // ========================================
+    // زيادة السرعة
+    // ========================================
+
+    else if (
+        isButtonHit(
+            x,
+            y,
+            W - 45,
+            H - 155
+        )
+    ) {
+
+        if (
+            !game.collisionLocked
+        ) {
+
+            game.speedUpHeld =
+                true;
+
+
+            game.speedDownHeld =
+                false;
+
+
+            game.speedHoldTimer =
+                0;
+
+
+            game.speed =
+                Math.min(
+                    game.maxSpeed,
+                    game.speed +
+                    game.speedStep
+                );
+
+
+            game.speedMotion =
+                game.speed * 4;
+        }
+    }
+
+
+    // ========================================
+    // خفض السرعة
+    // ========================================
+
+    else if (
+        isButtonHit(
+            x,
+            y,
+            W - 115,
+            H - 155
+        )
+    ) {
+
+        if (
+            !game.collisionLocked
+        ) {
+
+            game.speedDownHeld =
+                true;
+
+
+            game.speedUpHeld =
+                false;
+
+
+            game.speedHoldTimer =
+                0;
+
+
+            game.speed =
+                Math.max(
+                    game.minSpeed,
+                    game.speed -
+                    game.speedStep
+                );
+
+
+            if (
+                game.speed <= 0
+            ) {
+
+                game.speed = 0;
+
+                game.speedMotion = 0;
+
+                game.moveLeft = false;
+
+                game.moveRight = false;
+
+                game.carRotation = 0;
+
+            } else {
+
+                game.speedMotion =
+                    game.speed * 4;
+            }
+        }
+    }
+}
+
+
+// ============================================
+// حركة الإصبع
+// ============================================
+
+function handleMove(
+    x,
+    y
+) {
+
+    if (
+        game.finished ||
+        game.collisionLocked ||
+        game.speed <= 0
+    ) {
+
+        return;
+    }
+
+
+    if (
+        isButtonHit(
+            x,
+            y,
+            W - 115,
+            H - 85
+        )
+    ) {
+
+        game.moveLeft = true;
+
+        game.moveRight = false;
+
+    } else if (
+        isButtonHit(
+            x,
+            y,
+            W - 45,
+            H - 85
+        )
+    ) {
+
+        game.moveRight = true;
+
+        game.moveLeft = false;
+    }
+}
+
+
+// ============================================
+// نهاية الضغط
+// ============================================
+
+function handleEnd() {
+
+    game.moveLeft = false;
+
+    game.moveRight = false;
+
+
+    game.speedUpHeld = false;
+
+    game.speedDownHeld = false;
+
+
+    game.speedHoldTimer = 0;
+}
+
+
+// ============================================
+// إعادة اللعب
+// ============================================
+
+function restart() {
+
+    game.speed = 60;
+
+    game.speedMotion = 240;
+
+
+    game.distance = 0;
+
+    game.elapsed = 0;
+
+
+    game.finished = false;
+
+
+    game.collisionLocked = false;
+
+    game.collisionTimer = 0;
+
+    game.collisionCooldown = 0;
+
+
+    game.flashOn = true;
+
+
+    game.moveLeft = false;
+
+    game.moveRight = false;
+
+
+    game.speedUpHeld = false;
+
+    game.speedDownHeld = false;
+
+
+    game.speedHoldTimer = 0;
+
+
+    game.carRotation = 0;
+
+    game.targetRotation = 0;
+
+
+    game.playerX =
+        W / 2;
+
+
+    // مهم:
+    // إعادة السيارة إلى الأسفل
+    game.playerY =
+        playerY();
+
+
+    game.savedCarX =
+        game.playerX;
+
+
+    resetWorld();
+}
+
+
+// ============================================
+// أحداث اللمس
+// ============================================
+
+canvas.addEventListener(
+    "touchstart",
+    e => {
+
+        e.preventDefault();
+
+
+        const p =
+            pointFromEvent(e);
+
+
+        handleStart(
+            p.x,
+            p.y
+        );
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+canvas.addEventListener(
+    "touchmove",
+    e => {
+
+        e.preventDefault();
+
+
+        const p =
+            pointFromEvent(e);
+
+
+        handleMove(
+            p.x,
+            p.y
+        );
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+canvas.addEventListener(
+    "touchend",
+    e => {
+
+        e.preventDefault();
+
+        handleEnd();
+
+    },
+    {
+        passive: false
+    }
+);
+
+
+// ============================================
+// أحداث الفأرة
+// ============================================
+
+canvas.addEventListener(
+    "mousedown",
+    e => {
+
+        e.preventDefault();
+
+
+        handleStart(
+            e.offsetX,
+            e.offsetY
+        );
+    }
+);
+
+
+canvas.addEventListener(
+    "mousemove",
+    e => {
+
+        if (e.buttons) {
+
+            handleMove(
+                e.offsetX,
+                e.offsetY
+            );
+        }
+    }
+);
+
+
+window.addEventListener(
+    "mouseup",
+    handleEnd
+);
+
+
+// ============================================
+// لوحة المفاتيح
+// ============================================
+
+window.addEventListener(
+    "keydown",
+    e => {
+
+        if (
+            e.key === "ArrowLeft"
+        ) {
+
+            e.preventDefault();
+
+            game.moveLeft = true;
+
+            game.moveRight = false;
+
+        }
+
+        else if (
+            e.key === "ArrowRight"
+        ) {
+
+            e.preventDefault();
+
+            game.moveRight = true;
+
+            game.moveLeft = false;
+
+        }
+
+        else if (
+            e.key === "ArrowUp"
+        ) {
+
+            e.preventDefault();
+
+            game.speedUpHeld = true;
+
+            game.speedDownHeld = false;
+
+            game.speedHoldTimer = 0;
+
+        }
+
+        else if (
+            e.key === "ArrowDown"
+        ) {
+
+            e.preventDefault();
+
+            game.speedDownHeld = true;
+
+            game.speedUpHeld = false;
+
+            game.speedHoldTimer = 0;
+        }
+    }
+);
+
+
+// ============================================
+// رفع المفاتيح
+// ============================================
+
+window.addEventListener(
+    "keyup",
+    e => {
+
+        if (
+            e.key === "ArrowLeft" ||
+            e.key === "ArrowRight"
+        ) {
+
+            game.moveLeft = false;
+
+            game.moveRight = false;
+
+        }
+
+        else if (
+            e.key === "ArrowUp"
+        ) {
+
+            game.speedUpHeld = false;
+
+            game.speedHoldTimer = 0;
+
+        }
+
+        else if (
+            e.key === "ArrowDown"
+        ) {
+
+            game.speedDownHeld = false;
+
+            game.speedHoldTimer = 0;
+        }
+    }
+);
+
+
+// ============================================
+// بدء اللعبة
+// ============================================
+
+resetWorld();
+
+requestAnimationFrame(
+    loop
+);
+
+</script>
+
+</body>
+</html>
