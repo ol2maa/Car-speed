@@ -53,26 +53,22 @@ resize();
 // إعدادات اللعبة
 // ============================================
 const game = {
-    // السرعة
     speed: 60,
     minSpeed: 0,
     maxSpeed: 300,
     speedStep: 10,
     speedMotion: 240,
 
-    // المسافة والوقت
     distance: 0,
     maxDistance: 5,
     elapsed: 0,
     finished: false,
 
-    // السيارة الرئيسية
     playerX: 0,
     playerY: 0,
     carWidth: 54,
     carHeight: 82,
 
-    // الطريق
     roadWidth: 280,
     lineWidth: 8,
     lineHeight: 45,
@@ -80,10 +76,8 @@ const game = {
     lineSpacing: 90,
     lines: [],
 
-    // الأشجار
     trees: [],
 
-    // سيارات المرور
     traffic: [],
     trafficCount: 7,
     trafficColors: [
@@ -92,7 +86,6 @@ const game = {
     ],
     trafficLanes: [],
 
-    // التحكم
     moveLeft: false,
     moveRight: false,
     speedUpHeld: false,
@@ -100,7 +93,6 @@ const game = {
     speedHoldTimer: 0,
     speedHoldInterval: 0.08,
 
-    // التصادم
     collisionLocked: false,
     collisionTimer: 0,
     collisionLockTime: 2,
@@ -109,7 +101,6 @@ const game = {
     flashOn: true,
     savedCarX: 0,
 
-    // زاوية السيارة
     carRotation: 0,
     targetRotation: 0,
 
@@ -318,11 +309,10 @@ function resetWorld() {
     
     game.traffic = [];
     for (let i = 0; i < game.trafficCount; i++) {
-        // سرعات أقل لتناسب سرعة اللاعب
         const speedOptions = [
-            rand(20, 40),   // بطيئة
-            rand(40, 70),   // متوسطة
-            rand(70, 100)   // سريعة
+            rand(20, 40),
+            rand(40, 70),
+            rand(70, 100)
         ];
         const speed = speedOptions[Math.floor(Math.random() * speedOptions.length)];
         const lane = i % 3;
@@ -425,6 +415,9 @@ function update(dt) {
         return;
     }
     
+    // ============================================
+    // حركة العناصر الثابتة (الطريق والأشجار)
+    // ============================================
     const move = game.speedMotion * dt;
     const totalSpan = game.lines.length * game.lineSpacing;
     for (let i = 0; i < game.lines.length; i++) {
@@ -443,7 +436,7 @@ function update(dt) {
     }
     
     // ============================================
-    // حركة سيارات المرور - باستخدام السرعة النسبية
+    // حركة سيارات المرور (تعمل حتى عند السرعة 0)
     // ============================================
     for (const t of game.traffic) {
         if (!t.avoiding) {
@@ -481,9 +474,10 @@ function update(dt) {
         }
         
         // ============================================
-        // السرعة النسبية: سرعة السيارة الأخرى - سرعة اللاعب
+        // السرعة النسبية: (سرعة السيارة - سرعة اللاعب)
+        // لكن مع عكس الإشارة لأن المحور Y معكوس
         // ============================================
-        const relativeSpeed = t.currentSpeed - game.speed;
+        const relativeSpeed = game.speed - t.currentSpeed;
         t.y += relativeSpeed * 4 * dt;
         
         // إعادة تدوير السيارات
@@ -508,11 +502,16 @@ function update(dt) {
         }
     }
     
+    // ============================================
+    // فحص التصادم
+    // ============================================
     if (!game.collisionLocked && game.collisionCooldown <= 0) {
         checkCollisions();
     }
     
+    // ============================================
     // توجيه السيارة الرئيسية
+    // ============================================
     if (game.speed > 0 && !game.collisionLocked) {
         if (game.moveLeft) {
             game.targetRotation = -0.12;
