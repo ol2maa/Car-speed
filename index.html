@@ -2,71 +2,52 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-
-<!-- viewport محسن للشاشات الصغيرة مع إخفاء شريط التنقل -->
 <meta name="viewport"
 content="width=device-width,
 initial-scale=1.0,
 maximum-scale=1.0,
 user-scalable=no,
 viewport-fit=cover">
-
-<!-- إضافة هذه الميتا تاج لإخفاء شريط التنقل في Safari -->
 <meta name="apple-mobile-web-app-capable"
 content="yes">
-
 <meta name="apple-mobile-web-app-status-bar-style"
 content="black-translucent">
-
 <meta name="apple-mobile-web-app-title"
 content="لعبة القيادة">
-
 <meta name="mobile-web-app-capable"
 content="yes">
-
 <meta name="format-detection"
 content="telephone=no">
-
 <title>لعبة القيادة</title>
 
 <style>
-
 * {
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
 }
-
-html,
-body {
+html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
-    /* منع التمرير */
     overflow: hidden;
     background: #78b85a;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     overscroll-behavior: none;
-    /* منع سحب الصفحة في Safari */
     position: fixed;
     inset: 0;
 }
-
 body {
     position: fixed;
     inset: 0;
     width: 100vw;
     height: 100vh;
-    /* دعم iPhone مع notch */
     height: 100dvh;
-    /* إضافة padding للأسفل لتغطية الشريط السفلي */
-    padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
     overflow: hidden;
     background: #78b85a;
 }
-
 canvas {
     display: block;
     position: fixed;
@@ -78,24 +59,17 @@ canvas {
     margin: 0;
     padding: 0;
     border: 0;
-    /* منع أي تأثيرات خارجية */
     z-index: 1;
 }
-
-/* إضافة ستايل لإخفاء شريط التمرير في iOS */
 ::-webkit-scrollbar {
     display: none;
 }
-
 </style>
 </head>
-
 <body>
-
 <canvas id="game"></canvas>
 
 <script>
-
 "use strict";
 
 // ============================================
@@ -110,36 +84,58 @@ let H = 0;
 let dpr = 1;
 
 // ============================================
-// تغيير حجم الشاشة - محسن للغاية
+// دالة رسم مستطيل مدور - متوافقة مع كل المتصفحات
+// ============================================
+
+function drawRoundedRect(x, y, w, h, r, fill, stroke, lineWidth = 1) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    
+    if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fill();
+    }
+    if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+    }
+}
+
+// ============================================
+// تغيير حجم الشاشة
 // ============================================
 
 function resize() {
-    // الحصول على أبعاد الشاشة الفعلية
     let width = window.innerWidth;
     let height = window.innerHeight;
     
-    // في Pythonista 3 و Safari، نستخدم visualViewport للحصول على الأبعاد الصحيحة
     if (window.visualViewport) {
         width = window.visualViewport.width;
         height = window.visualViewport.height;
     }
     
-    // نأخذ في الاعتبار نسبة البكسل في الشاشات عالية الدقة
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     
     W = width;
     H = height;
     
-    // ضبط حجم canvas ليتطابق تماماً مع الشاشة
     canvas.style.width = W + "px";
     canvas.style.height = H + "px";
     canvas.width = Math.floor(W * dpr);
     canvas.height = Math.floor(H * dpr);
     
-    // إعادة ضبط التحويلات لتتناسب مع الحجم الجديد
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     
-    // تحديث موقع السيارة
     if (game) {
         game.playerY = playerY();
         if (!game.finished && !game.collisionLocked) {
@@ -152,19 +148,18 @@ function resize() {
     }
 }
 
-// الاستماع لتغيرات الحجم
 window.addEventListener("resize", resize);
 window.addEventListener("orientationchange", resize);
 if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", resize);
 }
 
-// التنفيذ الأولي
 setTimeout(resize, 100);
 
 // ============================================
 // محاولة تشغيل وضع الشاشة الكاملة
 // ============================================
+
 function requestGameFullscreen() {
     const el = document.documentElement;
     if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) {
@@ -250,8 +245,8 @@ function roadRight() {
 // ============================================
 // مكان السيارة الرئيسي
 // ============================================
+
 function playerY() {
-    // السيارة تكون فوق أزرار التحكم مباشرة
     const speedButtonTop = H - 155 - 29;
     return speedButtonTop - (game.carHeight / 2) - 8;
 }
@@ -275,22 +270,8 @@ function formatTime(seconds) {
 }
 
 // ============================================
-// رسم السيارة
+// رسم السيارة - باستخدام الدالة الجديدة
 // ============================================
-
-function roundedRect(x, y, w, h, r, fill, stroke, lineWidth = 1) {
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, r);
-    if (fill) {
-        ctx.fillStyle = fill;
-        ctx.fill();
-    }
-    if (stroke) {
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = lineWidth;
-        ctx.stroke();
-    }
-}
 
 function drawTree(x, y) {
     ctx.fillStyle = "#7b4b27";
@@ -306,15 +287,15 @@ function drawCar(x, y, w, h, color, angle = 0, isPlayer = false, alpha = 1) {
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
     ctx.rotate(angle);
-    roundedRect(-w / 2, -h / 2, w, h, 8, color, "#ffffff", isPlayer ? 3 : 2);
+    drawRoundedRect(-w / 2, -h / 2, w, h, 8, color, "#ffffff", isPlayer ? 3 : 2);
     const windowW = isPlayer ? 38 : 32;
     const windowH = isPlayer ? 27 : 22;
-    roundedRect(-windowW / 2, -h / 2 + 5, windowW, windowH, 5, "#8ed0e8", "#333333", 1);
+    drawRoundedRect(-windowW / 2, -h / 2 + 5, windowW, windowH, 5, "#8ed0e8", "#333333", 1);
     ctx.restore();
 }
 
 function drawButton(x, y, text) {
-    roundedRect(x - 29, y - 29, 58, 58, 12, "#222222", "#ffffff", 2);
+    drawRoundedRect(x - 29, y - 29, 58, 58, 12, "#222222", "#ffffff", 2);
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 30px Arial";
     ctx.textAlign = "center";
@@ -364,7 +345,7 @@ function drawRoad() {
 
 function drawUI() {
     // المسافة
-    roundedRect(15, 17, 94, 42, 7, "#000000", "#ffffff", 1);
+    drawRoundedRect(15, 17, 94, 42, 7, "#000000", "#ffffff", 1);
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 15px Arial";
     ctx.textAlign = "center";
@@ -372,7 +353,7 @@ function drawUI() {
     ctx.fillText(game.distance.toFixed(3) + " كم", 62, 38);
     
     // الوقت
-    roundedRect(15, 65, 94, 42, 7, "#000000", "#ffffff", 1);
+    drawRoundedRect(15, 65, 94, 42, 7, "#000000", "#ffffff", 1);
     ctx.fillStyle = "#ffff00";
     ctx.font = "bold 13px Arial";
     ctx.fillText(formatTime(game.elapsed), 62, 86);
@@ -424,7 +405,7 @@ function drawUI() {
 }
 
 // ============================================
-// إنشاء سيارة مرور
+// باقي دوال اللعبة (نفس الكود السابق)
 // ============================================
 
 function createTrafficCar(x, y, color, speed, lane) {
@@ -446,10 +427,6 @@ function createTree(side, y) {
     const x = W / 2 + side * (170 + rand(-20, 35));
     return { side: side, x: x, y: y };
 }
-
-// ============================================
-// إعادة إنشاء العالم
-// ============================================
 
 function resetWorld() {
     game.playerX = W / 2;
@@ -483,10 +460,6 @@ function resetWorld() {
         game.traffic.push(createTrafficCar(x, y, color, speed, lane));
     }
 }
-
-// ============================================
-// تحديث اللعبة
-// ============================================
 
 function update(dt) {
     if (dt > 0.05) dt = 0.05;
@@ -680,10 +653,6 @@ function update(dt) {
     }
 }
 
-// ============================================
-// فحص التصادم
-// ============================================
-
 function checkCollisions() {
     const px = game.playerX;
     const py = game.playerY;
@@ -714,10 +683,6 @@ function startCollision(t) {
     t.y -= 95;
 }
 
-// ============================================
-// رسم اللعبة
-// ============================================
-
 function draw() {
     drawRoad();
     for (const t of game.traffic) {
@@ -727,10 +692,6 @@ function draw() {
     drawCar(game.playerX, game.playerY, game.carWidth, game.carHeight, "#e53935", game.carRotation, true, alpha);
     drawUI();
 }
-
-// ============================================
-// حلقة اللعبة
-// ============================================
 
 function loop(now) {
     let dt = (now - game.lastTime) / 1000;
@@ -742,7 +703,7 @@ function loop(now) {
 }
 
 // ============================================
-// تحويل اللمس إلى إحداثيات
+// تحويل اللمس
 // ============================================
 
 function pointFromEvent(e) {
@@ -757,10 +718,6 @@ function pointFromEvent(e) {
 function isButtonHit(x, y, cx, cy) {
     return Math.abs(x - cx) <= 34 && Math.abs(y - cy) <= 34;
 }
-
-// ============================================
-// بداية الضغط
-// ============================================
 
 function handleStart(x, y) {
     if (x > W - 90 && y < 90) {
@@ -839,10 +796,6 @@ function handleEnd() {
     game.speedDownHeld = false;
     game.speedHoldTimer = 0;
 }
-
-// ============================================
-// إعادة اللعب
-// ============================================
 
 function restart() {
     game.speed = 60;
@@ -955,6 +908,5 @@ resetWorld();
 requestAnimationFrame(loop);
 
 </script>
-
 </body>
 </html>
