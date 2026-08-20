@@ -216,7 +216,6 @@ const game = {
 
     elapsed: 0,
 
-    // عدد الصدمات
     collisions: 0,
 
     finished: false,
@@ -231,7 +230,6 @@ const game = {
 
     playerY: 0,
 
-    // حجم سيارة اللاعب مثل سيارات المرور
     carWidth: 46,
 
     carHeight: 72,
@@ -298,6 +296,15 @@ const game = {
 
     lastTime: performance.now()
 };
+
+
+// ============================================================
+// مسافات سيارات المرور
+// ============================================================
+
+const TRAFFIC_SAFE_GAP = 110;
+
+const TRAFFIC_RESPAWN_GAP = 260;
 
 
 // ============================================================
@@ -709,14 +716,12 @@ function getButtonPositions() {
     const bottomSafe = 18;
 
 
-    // الاتجاهات على اليمين
     const directionY =
         H -
         bottomSafe -
         22;
 
 
-    // السرعة على اليسار
     const speedDownY =
         H -
         bottomSafe -
@@ -757,7 +762,6 @@ function getButtonPositions() {
 
 function drawRoad() {
 
-    // العشب يغطي كامل الشاشة
     ctx.fillStyle =
         "#78b85a";
 
@@ -770,7 +774,6 @@ function drawRoad() {
     );
 
 
-    // الطريق
     ctx.fillStyle =
         "#555555";
 
@@ -783,7 +786,6 @@ function drawRoad() {
     );
 
 
-    // خطوط الطريق
     for (
         const y of game.lines
     ) {
@@ -802,7 +804,6 @@ function drawRoad() {
     }
 
 
-    // الأشجار
     for (
         const t of game.trees
     ) {
@@ -814,7 +815,6 @@ function drawRoad() {
     }
 
 
-    // خط النهاية
     if (
         game.finishActive
     ) {
@@ -883,10 +883,6 @@ function drawRoad() {
 
 function drawUI() {
 
-    // --------------------------------------------------------
-    // المسافة
-    // --------------------------------------------------------
-
     drawRoundedRect(
         15,
         17,
@@ -923,10 +919,6 @@ function drawUI() {
     );
 
 
-    // --------------------------------------------------------
-    // الوقت
-    // --------------------------------------------------------
-
     drawRoundedRect(
         15,
         65,
@@ -956,10 +948,6 @@ function drawUI() {
     );
 
 
-    // --------------------------------------------------------
-    // X
-    // --------------------------------------------------------
-
     ctx.fillStyle =
         "#ffffff";
 
@@ -968,24 +956,12 @@ function drawUI() {
         "42px Arial";
 
 
-    ctx.textAlign =
-        "center";
-
-
-    ctx.textBaseline =
-        "middle";
-
-
     ctx.fillText(
         "×",
         W - 35,
         35
     );
 
-
-    // --------------------------------------------------------
-    // السرعة فوق السيارة
-    // --------------------------------------------------------
 
     ctx.fillStyle =
         "#ffffff";
@@ -1028,15 +1004,10 @@ function drawUI() {
         0;
 
 
-    // --------------------------------------------------------
-    // الأزرار
-    // --------------------------------------------------------
-
     const buttons =
         getButtonPositions();
 
 
-    // الاتجاهات
     drawButton(
         buttons.directionLeftX,
         buttons.directionY,
@@ -1051,7 +1022,6 @@ function drawUI() {
     );
 
 
-    // السرعة
     drawButton(
         buttons.speedX,
         buttons.speedUpY,
@@ -1065,10 +1035,6 @@ function drawUI() {
         "↓"
     );
 
-
-    // ========================================================
-    // شاشة النهاية
-    // ========================================================
 
     if (
         game.finished
@@ -1094,7 +1060,6 @@ function drawUI() {
             "middle";
 
 
-        // العنوان
         ctx.fillStyle =
             "#ffffff";
 
@@ -1114,7 +1079,6 @@ function drawUI() {
         );
 
 
-        // المسافة
         ctx.fillStyle =
             "#ffffff";
 
@@ -1133,7 +1097,6 @@ function drawUI() {
         );
 
 
-        // الوقت
         ctx.fillStyle =
             "#ffff00";
 
@@ -1153,7 +1116,6 @@ function drawUI() {
         );
 
 
-        // متوسط السرعة
         ctx.fillStyle =
             "#00e5ff";
 
@@ -1172,7 +1134,6 @@ function drawUI() {
         );
 
 
-        // عدد الصدمات
         ctx.fillStyle =
             "#ff7043";
 
@@ -1190,7 +1151,6 @@ function drawUI() {
         );
 
 
-        // إعادة اللعب
         ctx.fillStyle =
             "#ffffff";
 
@@ -1298,7 +1258,6 @@ function resetWorld() {
         game.playerX;
 
 
-    // الخطوط
     game.lines = [];
 
 
@@ -1323,7 +1282,6 @@ function resetWorld() {
     }
 
 
-    // الأشجار
     game.trees = [];
 
 
@@ -1347,7 +1305,6 @@ function resetWorld() {
     }
 
 
-    // المسارات
     game.trafficLanes = [
 
         W / 2 - 75,
@@ -1358,7 +1315,6 @@ function resetWorld() {
     ];
 
 
-    // السيارات
     game.traffic = [];
 
 
@@ -1398,9 +1354,9 @@ function resetWorld() {
 
 
         const y =
-            -200 -
+            -180 -
             i * 180 +
-            rand(-30, 30);
+            rand(-20, 20);
 
 
         const color =
@@ -1419,6 +1375,126 @@ function resetWorld() {
                 lane
             )
         );
+    }
+}
+
+
+// ============================================================
+// أقرب سيارة أمام سيارة معينة
+// ============================================================
+
+function getCarAhead(car) {
+
+    let nearest = null;
+
+    let nearestGap =
+        Infinity;
+
+
+    for (
+        const other of game.traffic
+    ) {
+
+        if (
+            other === car ||
+            other.lane !== car.lane
+        ) {
+
+            continue;
+        }
+
+
+        const gap =
+            other.y -
+            car.y;
+
+
+        if (
+            gap > 0 &&
+            gap < nearestGap
+        ) {
+
+            nearestGap =
+                gap;
+
+            nearest =
+                other;
+        }
+    }
+
+
+    return {
+
+        car: nearest,
+
+        gap: nearestGap
+    };
+}
+
+
+// ============================================================
+// منع تداخل سيارات المرور
+// ============================================================
+
+function separateTrafficCars() {
+
+    for (
+        let lane = 0;
+        lane < 3;
+        lane++
+    ) {
+
+        const cars =
+            game.traffic
+                .filter(
+                    car =>
+                        car.lane === lane
+                )
+                .sort(
+                    (a, b) =>
+                        a.y - b.y
+                );
+
+
+        for (
+            let i = 1;
+            i < cars.length;
+            i++
+        ) {
+
+            const front =
+                cars[i - 1];
+
+            const back =
+                cars[i];
+
+
+            const requiredGap =
+                Math.max(
+                    TRAFFIC_SAFE_GAP,
+                    (
+                        front.height +
+                        back.height
+                    ) / 2 +
+                    25
+                );
+
+
+            const actualGap =
+                back.y -
+                front.y;
+
+
+            if (
+                actualGap <
+                requiredGap
+            ) {
+
+                back.y =
+                    front.y +
+                    requiredGap;
+            }
+        }
     }
 }
 
@@ -1833,65 +1909,31 @@ function update(dt) {
         }
 
 
-        let nearest = null;
-
-        let nearestGap =
-            Infinity;
-
-
-        for (
-            const other of game.traffic
-        ) {
-
-            if (
-                other === t ||
-                other.lane !== t.lane
-            ) {
-
-                continue;
-            }
-
-
-            const gap =
-                other.y -
-                t.y;
-
-
-            if (
-                gap > 0 &&
-                gap < nearestGap
-            ) {
-
-                nearestGap = gap;
-
-                nearest = other;
-            }
-        }
-
-
-        const safeGap = 130;
+        const ahead =
+            getCarAhead(t);
 
 
         if (
-            nearest &&
-            nearestGap <
-            safeGap
+            ahead.car &&
+            ahead.gap <
+            TRAFFIC_SAFE_GAP + 60
         ) {
 
             t.avoiding = true;
 
 
             const factor =
-                Math.max(
-                    0.3,
+                clamp(
                     (
-                        nearestGap -
-                        50
+                        ahead.gap -
+                        60
                     ) /
                     (
-                        safeGap -
-                        50
-                    )
+                        TRAFFIC_SAFE_GAP -
+                        60
+                    ),
+                    0.05,
+                    1
                 );
 
 
@@ -1927,36 +1969,32 @@ function update(dt) {
             relativeSpeed *
             4 *
             dt;
+    }
 
 
-        // إعادة السيارة
+    // --------------------------------------------------------
+    // منع تداخل السيارات
+    // --------------------------------------------------------
+
+    separateTrafficCars();
+
+
+    // --------------------------------------------------------
+    // إعادة السيارات الخارجة من الشاشة
+    // --------------------------------------------------------
+
+    for (
+        const t of game.traffic
+    ) {
+
         if (
             t.y >
             H + 140
         ) {
 
-            const others =
-                game.traffic.filter(
-                    o => o !== t
-                );
-
-
-            let highestY =
-                -300;
-
-
-            if (
-                others.length > 0
-            ) {
-
-                highestY =
-                    Math.min(
-                        ...others.map(
-                            o => o.y
-                        )
-                    );
-            }
-
+            // ================================================
+            // نختار المسار الأقل ازدحامًا
+            // ================================================
 
             const laneCounts =
                 game.trafficLanes.map(
@@ -1965,9 +2003,8 @@ function update(dt) {
                         return game.traffic.filter(
                             o =>
                                 o !== t &&
-                                o.lane ===
-                                laneIndex &&
-                                o.y < H
+                                o.lane === laneIndex &&
+                                o.y < H + 100
                         ).length;
                     }
                 );
@@ -1991,6 +2028,67 @@ function update(dt) {
                     );
             }
 
+
+            // ================================================
+            // السيارات الموجودة في المسار الجديد
+            // ================================================
+
+            const laneCars =
+                game.traffic.filter(
+                    o =>
+                        o !== t &&
+                        o.lane === newLane
+                );
+
+
+            // ================================================
+            // أهم نقطة:
+            //
+            // السيارة الجديدة تبدأ دائمًا فوق الشاشة.
+            // ================================================
+
+            let spawnY =
+                -game.carHeight -
+                rand(80, 180);
+
+
+            // ================================================
+            // إذا توجد سيارة في المسار،
+            // نضع الجديدة فوقها بمسافة كبيرة.
+            // ================================================
+
+            if (
+                laneCars.length > 0
+            ) {
+
+                const highestY =
+                    Math.min(
+                        ...laneCars.map(
+                            o => o.y
+                        )
+                    );
+
+
+                const candidate =
+                    highestY -
+                    TRAFFIC_RESPAWN_GAP -
+                    rand(30, 100);
+
+
+                // لا نسمح أبدًا بأن تصبح
+                // داخل الشاشة.
+                spawnY =
+                    Math.min(
+                        spawnY,
+                        candidate,
+                        -game.carHeight - 30
+                    );
+            }
+
+
+            // ================================================
+            // سرعة جديدة
+            // ================================================
 
             const speedOptions = [
 
@@ -2019,8 +2117,17 @@ function update(dt) {
                 t.baseSpeed;
 
 
-            t.avoiding = false;
+            t.avoiding =
+                false;
 
+
+            t.timer =
+                0;
+
+
+            // ================================================
+            // تحديد مكان السيارة
+            // ================================================
 
             t.x =
                 game.trafficLanes[
@@ -2029,14 +2136,20 @@ function update(dt) {
 
 
             t.y =
-                highestY -
-                rand(180, 300);
+                spawnY;
         }
     }
 
 
     // --------------------------------------------------------
-    // فحص التصادم
+    // فحص أخير للتداخل
+    // --------------------------------------------------------
+
+    separateTrafficCars();
+
+
+    // --------------------------------------------------------
+    // فحص التصادم مع اللاعب
     // --------------------------------------------------------
 
     if (
@@ -2220,7 +2333,6 @@ function checkCollisions() {
 
 function startCollision(t) {
 
-    // تسجيل الصدمة
     game.collisions += 1;
 
 
@@ -2253,6 +2365,56 @@ function startCollision(t) {
 
 
     t.y -= 95;
+}
+
+
+// ============================================================
+// إعادة اللعب
+// ============================================================
+
+function restart() {
+
+    game.speed = 60;
+
+    game.distance = 0;
+
+    game.elapsed = 0;
+
+    game.collisions = 0;
+
+    game.finished = false;
+
+    game.finishActive = false;
+
+    game.finishY =
+        -game.finishHeight;
+
+    game.moveLeft = false;
+
+    game.moveRight = false;
+
+    game.speedUpHeld = false;
+
+    game.speedDownHeld = false;
+
+    game.speedHoldTimer = 0;
+
+    game.collisionLocked = false;
+
+    game.collisionTimer = 0;
+
+    game.collisionCooldown = 0;
+
+    game.flashTimer = 0;
+
+    game.flashOn = true;
+
+    game.speedMotion =
+        game.speed * 4;
+
+    activeTouches.clear();
+
+    resetWorld();
 }
 
 
