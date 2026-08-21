@@ -20,6 +20,7 @@ viewport-fit=cover">
 
 <title>لعبة القيادة</title>
 
+
 <style>
 
 * {
@@ -29,40 +30,65 @@ viewport-fit=cover">
 
 html,
 body {
+
     margin: 0;
     padding: 0;
+
     width: 100%;
     height: 100%;
+
     overflow: hidden;
+
     background: #78b85a;
+
     touch-action: none;
+
     user-select: none;
     -webkit-user-select: none;
+
     overscroll-behavior: none;
+
     position: fixed;
+
     inset: 0;
 }
 
 body {
+
     width: 100vw;
+
     height: 100vh;
+
     height: 100dvh;
+
     overflow: hidden;
+
     background: #78b85a;
 }
 
 canvas {
+
     display: block;
+
     position: fixed;
+
     left: 0;
     top: 0;
+
     width: 100vw;
+
     height: 100vh;
+
     height: 100dvh;
+
     margin: 0;
     padding: 0;
+
     border: 0;
+
     z-index: 1;
+
+    touch-action: none;
 }
 
 audio {
@@ -77,26 +103,24 @@ audio {
 
 </head>
 
+
 <body>
+
 
 <canvas id="game"></canvas>
 
 
 <!-- ========================================================
-     ملف صوت المحرك
-     
-     يجب أن يكون الملف في نفس مكان index.html
-     الاسم:
-     Fast-car-sound-effect.mp3
+     ملف صوت السيارة
      ======================================================== -->
 
 <audio
     id="engineAudio"
+    src="./Fast-car-sound-effect.mp3"
     preload="auto"
     loop
     playsinline
-    webkit-playsinline
-    src="./Fast-car-sound-effect.mp3?v=2">
+    webkit-playsinline>
 </audio>
 
 
@@ -129,148 +153,73 @@ const engineAudio =
 
 let soundEnabled = false;
 
-let soundStarting = false;
+let soundButtonPressed = false;
+
+let lastSoundUpdate = 0;
+
+const SOUND_UPDATE_INTERVAL = 0.10;
 
 
-// ------------------------------------------------------------
-// إعدادات الصوت
-// ------------------------------------------------------------
+// ============================================================
+// إعداد الصوت
+// ============================================================
 
 engineAudio.loop = true;
+
 engineAudio.preload = "auto";
-engineAudio.volume = 0.35;
-engineAudio.playbackRate = 0.8;
 
+engineAudio.volume = 0;
 
-// ------------------------------------------------------------
-// عند حدوث خطأ في الملف
-// ------------------------------------------------------------
-
-engineAudio.addEventListener(
-    "error",
-    function() {
-
-        soundEnabled = false;
-
-        soundStarting = false;
-
-        console.log(
-            "خطأ في تحميل ملف الصوت"
-        );
-    }
-);
-
-
-// ------------------------------------------------------------
-// عندما يبدأ الصوت فعليًا
-// ------------------------------------------------------------
-
-engineAudio.addEventListener(
-    "playing",
-    function() {
-
-        soundEnabled = true;
-
-        soundStarting = false;
-
-    }
-);
-
-
-// ------------------------------------------------------------
-// إذا توقف الصوت
-// ------------------------------------------------------------
-
-engineAudio.addEventListener(
-    "pause",
-    function() {
-
-        if (
-            !game.finished &&
-            !game.collisionLocked
-        ) {
-
-            /*
-             * لا نغير الحالة هنا بشكل مباشر
-             * لأن pause قد يحدث أثناء محاولة التشغيل.
-             */
-        }
-    }
-);
+engineAudio.playbackRate = 0.85;
 
 
 // ============================================================
-// تشغيل الصوت
+// تفعيل الصوت
 // ============================================================
 
-function startEngineSound() {
+function enableSound() {
 
     if (!engineAudio) {
         return;
     }
 
-
-    if (soundStarting) {
-        return;
-    }
-
-
-    soundStarting = true;
-
-
     try {
 
         engineAudio.muted = false;
 
-        engineAudio.volume = 0.35;
+        engineAudio.volume = 0.30;
 
-        engineAudio.playbackRate = 0.8;
-
-
-        /*
-         * إعادة تحميل الملف للتأكد أن GitHub Pages
-         * يستخدم النسخة الجديدة.
-         */
-
-        if (
-            engineAudio.readyState === 0
-        ) {
-
-            engineAudio.load();
-        }
+        engineAudio.playbackRate = 0.85;
 
 
-        const promise =
+        const p =
             engineAudio.play();
 
 
         if (
-            promise &&
-            typeof promise.then === "function"
+            p &&
+            typeof p.then === "function"
         ) {
 
-            promise.then(
-                function() {
+            p.then(function() {
 
-                    soundEnabled = true;
+                soundEnabled = true;
 
-                    soundStarting = false;
+                soundButtonPressed = true;
 
-                }
-            )
-            .catch(
-                function(error) {
+                lastSoundUpdate =
+                    performance.now() / 1000;
 
-                    console.log(
-                        "تعذر تشغيل الصوت:",
-                        error
-                    );
+            }).catch(function(error) {
 
-                    soundEnabled = false;
+                console.log(
+                    "Audio error:",
+                    error
+                );
 
-                    soundStarting = false;
-                }
-            );
+                soundEnabled = false;
+
+            });
 
         }
 
@@ -278,26 +227,23 @@ function startEngineSound() {
 
             soundEnabled = true;
 
-            soundStarting = false;
+            soundButtonPressed = true;
         }
 
     }
-    catch(error) {
+
+    catch (error) {
 
         console.log(
             "Audio exception:",
             error
         );
-
-        soundEnabled = false;
-
-        soundStarting = false;
     }
 }
 
 
 // ============================================================
-// محاولة تشغيل الصوت من أي لمسة
+// محاولة تشغيل الصوت بعد اللمس
 // ============================================================
 
 function tryStartSound() {
@@ -307,21 +253,57 @@ function tryStartSound() {
     }
 
 
-    /*
-     * إذا الصوت يعمل بالفعل
-     */
+    if (soundEnabled) {
 
-    if (
-        !engineAudio.paused
-    ) {
+        if (engineAudio.paused) {
 
-        soundEnabled = true;
+            engineAudio.play()
+                .catch(() => {});
+        }
 
         return;
     }
 
 
-    startEngineSound();
+    try {
+
+        engineAudio.muted = false;
+
+        engineAudio.volume = 0.30;
+
+
+        const p =
+            engineAudio.play();
+
+
+        if (
+            p &&
+            typeof p.then === "function"
+        ) {
+
+            p.then(function() {
+
+                soundEnabled = true;
+
+            }).catch(function() {
+
+                soundEnabled = false;
+
+            });
+
+        }
+
+        else {
+
+            soundEnabled = true;
+        }
+
+    }
+
+    catch (error) {
+
+        console.log(error);
+    }
 }
 
 
@@ -331,76 +313,74 @@ function tryStartSound() {
 
 function updateEngineSound() {
 
-    if (!engineAudio) {
-        return;
-    }
-
-
-    if (!soundEnabled) {
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // النهاية
-    // --------------------------------------------------------
-
     if (
-        game.finished
+        !engineAudio ||
+        !soundEnabled
     ) {
 
-        engineAudio.volume *= 0.90;
+        return;
+    }
 
-        if (
-            engineAudio.volume < 0.01
-        ) {
 
-            engineAudio.volume = 0;
-        }
+    const now =
+        performance.now() / 1000;
+
+
+    // لا نغير خصائص الصوت في كل فريم
+    if (
+        now -
+        lastSoundUpdate <
+        SOUND_UPDATE_INTERVAL
+    ) {
+
+        return;
+    }
+
+
+    lastSoundUpdate =
+        now;
+
+
+    // --------------------------------------------------------
+    // نهاية اللعبة
+    // --------------------------------------------------------
+
+    if (game.finished) {
+
+        engineAudio.volume +=
+            (
+                0 -
+                engineAudio.volume
+            ) * 0.20;
 
         return;
     }
 
 
     // --------------------------------------------------------
-    // التصادم
+    // أثناء الاصطدام
     // --------------------------------------------------------
 
-    if (
-        game.collisionLocked
-    ) {
+    if (game.collisionLocked) {
 
-        engineAudio.volume *= 0.82;
-
-        if (
-            engineAudio.volume < 0.01
-        ) {
-
-            engineAudio.volume = 0;
-        }
+        engineAudio.volume +=
+            (
+                0 -
+                engineAudio.volume
+            ) * 0.25;
 
         return;
     }
 
 
     // --------------------------------------------------------
-    // السيارة متوقفة
+    // التأكد أن الملف يعمل
     // --------------------------------------------------------
 
-    if (
-        game.speed <= 0
-    ) {
+    if (engineAudio.paused) {
 
-        engineAudio.volume *= 0.90;
-
-        if (
-            engineAudio.volume < 0.01
-        ) {
-
-            engineAudio.volume = 0;
-        }
-
-        return;
+        engineAudio.play()
+            .catch(() => {});
     }
 
 
@@ -418,26 +398,26 @@ function updateEngineSound() {
 
 
     // --------------------------------------------------------
-    // سرعة الصوت
+    // سرعة تشغيل الصوت
     // --------------------------------------------------------
 
     const targetRate =
-        0.75 +
-        ratio * 1.10;
+        0.85 +
+        ratio * 0.65;
 
 
     engineAudio.playbackRate +=
         (
             targetRate -
             engineAudio.playbackRate
-        ) * 0.10;
+        ) * 0.15;
 
 
     engineAudio.playbackRate =
         clamp(
             engineAudio.playbackRate,
-            0.70,
-            1.90
+            0.80,
+            1.55
         );
 
 
@@ -446,41 +426,24 @@ function updateEngineSound() {
     // --------------------------------------------------------
 
     const targetVolume =
-        0.22 +
-        ratio * 0.53;
+        game.speed <= 0
+        ? 0.05
+        : 0.25 + ratio * 0.35;
 
 
     engineAudio.volume +=
         (
             targetVolume -
             engineAudio.volume
-        ) * 0.12;
+        ) * 0.15;
 
 
     engineAudio.volume =
         clamp(
             engineAudio.volume,
-            0,
-            0.75
+            0.03,
+            0.60
         );
-
-
-    // --------------------------------------------------------
-    // إذا توقف الصوت لأي سبب
-    // --------------------------------------------------------
-
-    if (
-        engineAudio.paused
-    ) {
-
-        engineAudio.play()
-            .catch(
-                function() {
-
-                    soundEnabled = false;
-                }
-            );
-    }
 }
 
 
@@ -645,6 +608,7 @@ const game = {
         "#ff7043",
         "#00acc1",
         "#d32f2f"
+
     ],
 
     trafficLanes: [],
@@ -766,6 +730,7 @@ function resize() {
         W / 2,
 
         W / 2 + 75
+
     ];
 
 
@@ -823,9 +788,7 @@ function requestGameFullscreen() {
     ) {
 
         el.requestFullscreen()
-            .catch(
-                function() {}
-            );
+            .catch(() => {});
     }
 }
 
@@ -1056,7 +1019,7 @@ function drawCar(
 
 
 // ============================================================
-// رسم زر
+// رسم الزر
 // ============================================================
 
 function drawButton(
@@ -1209,6 +1172,10 @@ function drawRoad() {
     }
 
 
+    // --------------------------------------------------------
+    // خط النهاية
+    // --------------------------------------------------------
+
     if (
         game.finishActive
     ) {
@@ -1351,7 +1318,7 @@ function drawUI() {
 
 
     // --------------------------------------------------------
-    // زر X
+    // X
     // --------------------------------------------------------
 
     ctx.fillStyle =
@@ -1450,9 +1417,9 @@ function drawUI() {
     );
 
 
-    // ========================================================
+    // --------------------------------------------------------
     // زر الصوت
-    // ========================================================
+    // --------------------------------------------------------
 
     const soundX =
         W - 35;
@@ -1773,6 +1740,7 @@ function resetWorld() {
         W / 2,
 
         W / 2 + 75
+
     ];
 
 
@@ -1792,6 +1760,7 @@ function resetWorld() {
             rand(40, 70),
 
             rand(70, 100)
+
         ];
 
 
@@ -1974,7 +1943,10 @@ function update(dt) {
     }
 
 
-    // صوت المحرك
+    // --------------------------------------------------------
+    // الصوت
+    // --------------------------------------------------------
+
     updateEngineSound();
 
 
@@ -2028,6 +2000,7 @@ function update(dt) {
                             game.speedStep
                         );
                 }
+
 
                 else if (
                     game.speedDownHeld &&
@@ -2533,6 +2506,7 @@ function update(dt) {
                 rand(40, 70),
 
                 rand(70, 100)
+
             ];
 
 
@@ -2577,7 +2551,7 @@ function update(dt) {
 
 
     // --------------------------------------------------------
-    // التصادم
+    // فحص التصادم
     // --------------------------------------------------------
 
     if (
@@ -2852,23 +2826,18 @@ function restart() {
     resetWorld();
 
 
-    /*
-     * إعادة تشغيل الصوت من جديد
-     * إذا كان قد تم تفعيله سابقًا.
-     */
-
     if (
         soundEnabled
     ) {
 
         engineAudio.currentTime = 0;
 
-        engineAudio.volume = 0.35;
+        engineAudio.volume = 0.30;
+
+        engineAudio.playbackRate = 0.85;
 
         engineAudio.play()
-            .catch(
-                function() {}
-            );
+            .catch(() => {});
     }
 }
 
@@ -2882,7 +2851,9 @@ function draw() {
     drawRoad();
 
 
+    // --------------------------------------------------------
     // سيارات المرور
+    // --------------------------------------------------------
 
     for (
         const t of game.traffic
@@ -2898,7 +2869,9 @@ function draw() {
     }
 
 
+    // --------------------------------------------------------
     // سيارة اللاعب
+    // --------------------------------------------------------
 
     const alpha =
         game.collisionLocked &&
@@ -2969,7 +2942,7 @@ const activeTouches =
 
 
 // ============================================================
-// نقطة اللمس
+// نقطة اللمس - إصلاح مهم للآيفون
 // ============================================================
 
 function getTouchPoint(touch) {
@@ -2978,15 +2951,29 @@ function getTouchPoint(touch) {
         canvas.getBoundingClientRect();
 
 
+    const scaleX =
+        W / rect.width;
+
+
+    const scaleY =
+        H / rect.height;
+
+
     return {
 
         x:
-            touch.clientX -
-            rect.left,
+            (
+                touch.clientX -
+                rect.left
+            ) *
+            scaleX,
 
         y:
-            touch.clientY -
-            rect.top
+            (
+                touch.clientY -
+                rect.top
+            ) *
+            scaleY
     };
 }
 
@@ -3002,17 +2989,18 @@ function isButtonHit(
     cy
 ) {
 
+    const dx =
+        x - cx;
+
+    const dy =
+        y - cy;
+
+
     return (
-
-        Math.abs(
-            x - cx
-        ) <= 27
-
-        &&
-
-        Math.abs(
-            y - cy
-        ) <= 27
+        Math.sqrt(
+            dx * dx +
+            dy * dy
+        ) <= 38
     );
 }
 
@@ -3030,6 +3018,10 @@ function getTouchedButton(
         getButtonPositions();
 
 
+    // --------------------------------------------------------
+    // يسار
+    // --------------------------------------------------------
+
     if (
         isButtonHit(
             x,
@@ -3042,6 +3034,10 @@ function getTouchedButton(
         return "left";
     }
 
+
+    // --------------------------------------------------------
+    // يمين
+    // --------------------------------------------------------
 
     if (
         isButtonHit(
@@ -3056,6 +3052,10 @@ function getTouchedButton(
     }
 
 
+    // --------------------------------------------------------
+    // زيادة السرعة
+    // --------------------------------------------------------
+
     if (
         isButtonHit(
             x,
@@ -3068,6 +3068,10 @@ function getTouchedButton(
         return "speedUp";
     }
 
+
+    // --------------------------------------------------------
+    // تخفيض السرعة
+    // --------------------------------------------------------
 
     if (
         isButtonHit(
@@ -3098,6 +3102,7 @@ function isSoundButtonHit(
     const soundX =
         W - 35;
 
+
     const soundY =
         90;
 
@@ -3106,13 +3111,13 @@ function isSoundButtonHit(
 
         Math.abs(
             x - soundX
-        ) <= 32
+        ) <= 38
 
         &&
 
         Math.abs(
             y - soundY
-        ) <= 28
+        ) <= 38
     );
 }
 
@@ -3142,24 +3147,24 @@ function updateTouchControls() {
         ) {
 
             left = true;
-
         }
+
 
         else if (
             button === "right"
         ) {
 
             right = true;
-
         }
+
 
         else if (
             button === "speedUp"
         ) {
 
             speedUp = true;
-
         }
+
 
         else if (
             button === "speedDown"
@@ -3170,6 +3175,10 @@ function updateTouchControls() {
     }
 
 
+    // --------------------------------------------------------
+    // الاتجاه
+    // --------------------------------------------------------
+
     game.moveLeft =
         left && !right;
 
@@ -3177,6 +3186,10 @@ function updateTouchControls() {
     game.moveRight =
         right && !left;
 
+
+    // --------------------------------------------------------
+    // السرعة
+    // --------------------------------------------------------
 
     game.speedUpHeld =
         speedUp && !speedDown;
@@ -3207,11 +3220,7 @@ canvas.addEventListener(
         e.preventDefault();
 
 
-        /*
-         * مهم جدًا:
-         * محاولة تشغيل الصوت من نفس حدث اللمس.
-         */
-
+        // تشغيل الصوت من نفس اللمسة
         tryStartSound();
 
 
@@ -3227,7 +3236,7 @@ canvas.addEventListener(
 
 
             // ------------------------------------------------
-            // زر الصوت
+            // الصوت
             // ------------------------------------------------
 
             if (
@@ -3237,19 +3246,19 @@ canvas.addEventListener(
                 )
             ) {
 
-                startEngineSound();
+                enableSound();
 
                 continue;
             }
 
 
             // ------------------------------------------------
-            // زر X
+            // X
             // ------------------------------------------------
 
             if (
                 p.x > W - 90 &&
-                p.y < 70
+                p.y < 75
             ) {
 
                 if (
@@ -3291,6 +3300,10 @@ canvas.addEventListener(
             }
 
 
+            // ------------------------------------------------
+            // إذا انتهت اللعبة
+            // ------------------------------------------------
+
             if (
                 game.finished
             ) {
@@ -3298,6 +3311,10 @@ canvas.addEventListener(
                 continue;
             }
 
+
+            // ------------------------------------------------
+            // زر التحكم
+            // ------------------------------------------------
 
             const button =
                 getTouchedButton(
@@ -3478,7 +3495,34 @@ canvas.addEventListener(
             )
         ) {
 
-            startEngineSound();
+            enableSound();
+
+            return;
+        }
+
+
+        // X
+        if (
+            e.offsetX > W - 90 &&
+            e.offsetY < 75
+        ) {
+
+            if (
+                game.finished
+            ) {
+
+                restart();
+
+            }
+
+            else {
+
+                game.finished = true;
+
+                game.speed = 0;
+
+                game.speedMotion = 0;
+            }
 
             return;
         }
