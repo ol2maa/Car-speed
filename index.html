@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -72,6 +74,7 @@ audio {
 }
 
 </style>
+
 </head>
 
 <body>
@@ -80,19 +83,20 @@ audio {
 
 
 <!-- ========================================================
-     صوت السيارة
+     ملف صوت المحرك
      
-     مهم:
-     غيّر الاسم هنا إلى اسم ملف الصوت الموجود في GitHub
+     يجب أن يكون الملف في نفس مكان index.html
+     الاسم:
+     Fast-car-sound-effect.mp3
      ======================================================== -->
 
 <audio
     id="engineAudio"
-    src="./Fast-car-sound-effect.mp3"
     preload="auto"
     loop
     playsinline
-    webkit-playsinline>
+    webkit-playsinline
+    src="./Fast-car-sound-effect.mp3?v=2">
 </audio>
 
 
@@ -117,7 +121,7 @@ let dpr = 1;
 
 
 // ============================================================
-// صوت السيارة
+// الصوت
 // ============================================================
 
 const engineAudio =
@@ -125,31 +129,93 @@ const engineAudio =
 
 let soundEnabled = false;
 
-let soundButtonPressed = false;
+let soundStarting = false;
 
 
-// ============================================================
-// إعداد الصوت
-// ============================================================
+// ------------------------------------------------------------
+// إعدادات الصوت
+// ------------------------------------------------------------
 
 engineAudio.loop = true;
-
 engineAudio.preload = "auto";
-
-engineAudio.volume = 0;
-
+engineAudio.volume = 0.35;
 engineAudio.playbackRate = 0.8;
 
 
+// ------------------------------------------------------------
+// عند حدوث خطأ في الملف
+// ------------------------------------------------------------
+
+engineAudio.addEventListener(
+    "error",
+    function() {
+
+        soundEnabled = false;
+
+        soundStarting = false;
+
+        console.log(
+            "خطأ في تحميل ملف الصوت"
+        );
+    }
+);
+
+
+// ------------------------------------------------------------
+// عندما يبدأ الصوت فعليًا
+// ------------------------------------------------------------
+
+engineAudio.addEventListener(
+    "playing",
+    function() {
+
+        soundEnabled = true;
+
+        soundStarting = false;
+
+    }
+);
+
+
+// ------------------------------------------------------------
+// إذا توقف الصوت
+// ------------------------------------------------------------
+
+engineAudio.addEventListener(
+    "pause",
+    function() {
+
+        if (
+            !game.finished &&
+            !game.collisionLocked
+        ) {
+
+            /*
+             * لا نغير الحالة هنا بشكل مباشر
+             * لأن pause قد يحدث أثناء محاولة التشغيل.
+             */
+        }
+    }
+);
+
+
 // ============================================================
-// تفعيل الصوت
+// تشغيل الصوت
 // ============================================================
 
-function enableSound() {
+function startEngineSound() {
 
     if (!engineAudio) {
         return;
     }
+
+
+    if (soundStarting) {
+        return;
+    }
+
+
+    soundStarting = true;
 
 
     try {
@@ -158,33 +224,53 @@ function enableSound() {
 
         engineAudio.volume = 0.35;
 
-        engineAudio.currentTime = 0;
+        engineAudio.playbackRate = 0.8;
 
 
-        const p =
+        /*
+         * إعادة تحميل الملف للتأكد أن GitHub Pages
+         * يستخدم النسخة الجديدة.
+         */
+
+        if (
+            engineAudio.readyState === 0
+        ) {
+
+            engineAudio.load();
+        }
+
+
+        const promise =
             engineAudio.play();
 
 
         if (
-            p &&
-            typeof p.then === "function"
+            promise &&
+            typeof promise.then === "function"
         ) {
 
-            p.then(function() {
+            promise.then(
+                function() {
 
-                soundEnabled = true;
+                    soundEnabled = true;
 
-                soundButtonPressed = true;
+                    soundStarting = false;
 
-            }).catch(function(error) {
+                }
+            )
+            .catch(
+                function(error) {
 
-                console.log(
-                    "Audio error:",
-                    error
-                );
+                    console.log(
+                        "تعذر تشغيل الصوت:",
+                        error
+                    );
 
-                soundEnabled = false;
-            });
+                    soundEnabled = false;
+
+                    soundStarting = false;
+                }
+            );
 
         }
 
@@ -192,22 +278,26 @@ function enableSound() {
 
             soundEnabled = true;
 
-            soundButtonPressed = true;
+            soundStarting = false;
         }
 
     }
-    catch (error) {
+    catch(error) {
 
         console.log(
             "Audio exception:",
             error
         );
+
+        soundEnabled = false;
+
+        soundStarting = false;
     }
 }
 
 
 // ============================================================
-// تشغيل الصوت بعد أي لمسة
+// محاولة تشغيل الصوت من أي لمسة
 // ============================================================
 
 function tryStartSound() {
@@ -217,62 +307,21 @@ function tryStartSound() {
     }
 
 
-    if (soundEnabled) {
+    /*
+     * إذا الصوت يعمل بالفعل
+     */
 
-        if (
-            engineAudio.paused
-        ) {
+    if (
+        !engineAudio.paused
+    ) {
 
-            engineAudio.play()
-                .catch(() => {});
-        }
+        soundEnabled = true;
 
         return;
     }
 
 
-    /*
-     * نحاول تفعيل الصوت من حدث المستخدم
-     */
-
-    try {
-
-        engineAudio.muted = false;
-
-        engineAudio.volume = 0.35;
-
-
-        const p =
-            engineAudio.play();
-
-
-        if (
-            p &&
-            typeof p.then === "function"
-        ) {
-
-            p.then(function() {
-
-                soundEnabled = true;
-
-            }).catch(function() {
-
-                soundEnabled = false;
-
-            });
-
-        }
-
-        else {
-
-            soundEnabled = true;
-        }
-
-    }
-    catch (error) {
-
-        console.log(error);
-    }
+    startEngineSound();
 }
 
 
@@ -282,17 +331,18 @@ function tryStartSound() {
 
 function updateEngineSound() {
 
-    if (
-        !engineAudio ||
-        !soundEnabled
-    ) {
+    if (!engineAudio) {
+        return;
+    }
 
+
+    if (!soundEnabled) {
         return;
     }
 
 
     // --------------------------------------------------------
-    // توقف الصوت عند النهاية
+    // النهاية
     // --------------------------------------------------------
 
     if (
@@ -301,12 +351,19 @@ function updateEngineSound() {
 
         engineAudio.volume *= 0.90;
 
+        if (
+            engineAudio.volume < 0.01
+        ) {
+
+            engineAudio.volume = 0;
+        }
+
         return;
     }
 
 
     // --------------------------------------------------------
-    // أثناء الاصطدام
+    // التصادم
     // --------------------------------------------------------
 
     if (
@@ -314,6 +371,13 @@ function updateEngineSound() {
     ) {
 
         engineAudio.volume *= 0.82;
+
+        if (
+            engineAudio.volume < 0.01
+        ) {
+
+            engineAudio.volume = 0;
+        }
 
         return;
     }
@@ -328,6 +392,13 @@ function updateEngineSound() {
     ) {
 
         engineAudio.volume *= 0.90;
+
+        if (
+            engineAudio.volume < 0.01
+        ) {
+
+            engineAudio.volume = 0;
+        }
 
         return;
     }
@@ -347,7 +418,7 @@ function updateEngineSound() {
 
 
     // --------------------------------------------------------
-    // سرعة ملف الصوت
+    // سرعة الصوت
     // --------------------------------------------------------
 
     const targetRate =
@@ -375,8 +446,8 @@ function updateEngineSound() {
     // --------------------------------------------------------
 
     const targetVolume =
-        0.18 +
-        ratio * 0.55;
+        0.22 +
+        ratio * 0.53;
 
 
     engineAudio.volume +=
@@ -395,7 +466,7 @@ function updateEngineSound() {
 
 
     // --------------------------------------------------------
-    // التأكد أن الملف يعمل
+    // إذا توقف الصوت لأي سبب
     // --------------------------------------------------------
 
     if (
@@ -403,7 +474,12 @@ function updateEngineSound() {
     ) {
 
         engineAudio.play()
-            .catch(() => {});
+            .catch(
+                function() {
+
+                    soundEnabled = false;
+                }
+            );
     }
 }
 
@@ -747,7 +823,9 @@ function requestGameFullscreen() {
     ) {
 
         el.requestFullscreen()
-            .catch(() => {});
+            .catch(
+                function() {}
+            );
     }
 }
 
@@ -1896,7 +1974,7 @@ function update(dt) {
     }
 
 
-    // صوت السيارة
+    // صوت المحرك
     updateEngineSound();
 
 
@@ -2499,7 +2577,7 @@ function update(dt) {
 
 
     // --------------------------------------------------------
-    // فحص التصادم
+    // التصادم
     // --------------------------------------------------------
 
     if (
@@ -2774,6 +2852,11 @@ function restart() {
     resetWorld();
 
 
+    /*
+     * إعادة تشغيل الصوت من جديد
+     * إذا كان قد تم تفعيله سابقًا.
+     */
+
     if (
         soundEnabled
     ) {
@@ -2783,7 +2866,9 @@ function restart() {
         engineAudio.volume = 0.35;
 
         engineAudio.play()
-            .catch(() => {});
+            .catch(
+                function() {}
+            );
     }
 }
 
@@ -2798,6 +2883,7 @@ function draw() {
 
 
     // سيارات المرور
+
     for (
         const t of game.traffic
     ) {
@@ -2813,6 +2899,7 @@ function draw() {
 
 
     // سيارة اللاعب
+
     const alpha =
         game.collisionLocked &&
         !game.flashOn
@@ -3000,10 +3087,13 @@ function getTouchedButton(
 
 
 // ============================================================
-// هل ضغط على زر الصوت؟
-/* ============================================================ */
+// زر الصوت
+// ============================================================
 
-function isSoundButtonHit(x, y) {
+function isSoundButtonHit(
+    x,
+    y
+) {
 
     const soundX =
         W - 35;
@@ -3117,7 +3207,11 @@ canvas.addEventListener(
         e.preventDefault();
 
 
-        // محاولة تشغيل الصوت من اللمسة
+        /*
+         * مهم جدًا:
+         * محاولة تشغيل الصوت من نفس حدث اللمس.
+         */
+
         tryStartSound();
 
 
@@ -3143,7 +3237,7 @@ canvas.addEventListener(
                 )
             ) {
 
-                enableSound();
+                startEngineSound();
 
                 continue;
             }
@@ -3384,7 +3478,7 @@ canvas.addEventListener(
             )
         ) {
 
-            enableSound();
+            startEngineSound();
 
             return;
         }
