@@ -63,6 +63,10 @@ canvas {
     z-index: 1;
 }
 
+audio {
+    display: none;
+}
+
 ::-webkit-scrollbar {
     display: none;
 }
@@ -74,9 +78,12 @@ canvas {
 
 <canvas id="game"></canvas>
 
+
 <!-- ========================================================
-     ملف صوت محرك السيارة الحقيقي
-     يجب أن يكون في نفس مجلد index.html
+     صوت السيارة
+     
+     مهم:
+     غيّر الاسم هنا إلى اسم ملف الصوت الموجود في GitHub
      ======================================================== -->
 
 <audio
@@ -84,7 +91,8 @@ canvas {
     src="./Fast-car-sound-effect.mp3"
     preload="auto"
     loop
-    playsinline>
+    playsinline
+    webkit-playsinline>
 </audio>
 
 
@@ -109,26 +117,24 @@ let dpr = 1;
 
 
 // ============================================================
-// نظام صوت السيارة الحقيقي
+// صوت السيارة
 // ============================================================
 
 const engineAudio =
     document.getElementById("engineAudio");
 
-let engineStarted = false;
+let soundEnabled = false;
 
-let engineUnlocked = false;
+let soundButtonPressed = false;
 
 
 // ============================================================
-// إعدادات الصوت
+// إعداد الصوت
 // ============================================================
 
 engineAudio.loop = true;
 
 engineAudio.preload = "auto";
-
-engineAudio.playsInline = true;
 
 engineAudio.volume = 0;
 
@@ -136,10 +142,10 @@ engineAudio.playbackRate = 0.8;
 
 
 // ============================================================
-// تشغيل صوت المحرك
+// تفعيل الصوت
 // ============================================================
 
-function startEngineSound() {
+function enableSound() {
 
     if (!engineAudio) {
         return;
@@ -150,52 +156,50 @@ function startEngineSound() {
 
         engineAudio.muted = false;
 
+        engineAudio.volume = 0.35;
 
-        /*
-         * مهم جدًا للآيفون:
-         * play() يتم استدعاؤها من داخل حدث اللمس
-         */
+        engineAudio.currentTime = 0;
 
-        const playPromise =
+
+        const p =
             engineAudio.play();
 
 
         if (
-            playPromise &&
-            typeof playPromise.then === "function"
+            p &&
+            typeof p.then === "function"
         ) {
 
-            playPromise
-                .then(function() {
+            p.then(function() {
 
-                    engineStarted = true;
+                soundEnabled = true;
 
-                    engineUnlocked = true;
+                soundButtonPressed = true;
 
-                })
-                .catch(function(error) {
+            }).catch(function(error) {
 
-                    console.log(
-                        "تعذر تشغيل صوت المحرك:",
-                        error
-                    );
+                console.log(
+                    "Audio error:",
+                    error
+                );
 
-                });
+                soundEnabled = false;
+            });
 
         }
 
         else {
 
-            engineStarted = true;
+            soundEnabled = true;
 
-            engineUnlocked = true;
+            soundButtonPressed = true;
         }
 
     }
     catch (error) {
 
         console.log(
-            "Audio start error:",
+            "Audio exception:",
             error
         );
     }
@@ -203,15 +207,113 @@ function startEngineSound() {
 
 
 // ============================================================
-// تحديث صوت المحرك حسب سرعة السيارة
+// تشغيل الصوت بعد أي لمسة
+// ============================================================
+
+function tryStartSound() {
+
+    if (!engineAudio) {
+        return;
+    }
+
+
+    if (soundEnabled) {
+
+        if (
+            engineAudio.paused
+        ) {
+
+            engineAudio.play()
+                .catch(() => {});
+        }
+
+        return;
+    }
+
+
+    /*
+     * نحاول تفعيل الصوت من حدث المستخدم
+     */
+
+    try {
+
+        engineAudio.muted = false;
+
+        engineAudio.volume = 0.35;
+
+
+        const p =
+            engineAudio.play();
+
+
+        if (
+            p &&
+            typeof p.then === "function"
+        ) {
+
+            p.then(function() {
+
+                soundEnabled = true;
+
+            }).catch(function() {
+
+                soundEnabled = false;
+
+            });
+
+        }
+
+        else {
+
+            soundEnabled = true;
+        }
+
+    }
+    catch (error) {
+
+        console.log(error);
+    }
+}
+
+
+// ============================================================
+// تحديث صوت المحرك
 // ============================================================
 
 function updateEngineSound() {
 
     if (
         !engineAudio ||
-        !engineUnlocked
+        !soundEnabled
     ) {
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // توقف الصوت عند النهاية
+    // --------------------------------------------------------
+
+    if (
+        game.finished
+    ) {
+
+        engineAudio.volume *= 0.90;
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // أثناء الاصطدام
+    // --------------------------------------------------------
+
+    if (
+        game.collisionLocked
+    ) {
+
+        engineAudio.volume *= 0.82;
 
         return;
     }
@@ -222,25 +324,10 @@ function updateEngineSound() {
     // --------------------------------------------------------
 
     if (
-        game.finished ||
-        game.collisionLocked ||
         game.speed <= 0
     ) {
 
-        engineAudio.volume +=
-            (
-                0 -
-                engineAudio.volume
-            ) * 0.18;
-
-
-        if (
-            engineAudio.volume < 0.005
-        ) {
-
-            engineAudio.volume = 0;
-        }
-
+        engineAudio.volume *= 0.90;
 
         return;
     }
@@ -250,7 +337,7 @@ function updateEngineSound() {
     // نسبة السرعة
     // --------------------------------------------------------
 
-    const speedRatio =
+    const ratio =
         clamp(
             game.speed /
             game.maxSpeed,
@@ -260,26 +347,26 @@ function updateEngineSound() {
 
 
     // --------------------------------------------------------
-    // سرعة تشغيل ملف MP3
+    // سرعة ملف الصوت
     // --------------------------------------------------------
 
-    const targetPlaybackRate =
+    const targetRate =
         0.75 +
-        speedRatio * 1.15;
+        ratio * 1.10;
 
 
     engineAudio.playbackRate +=
         (
-            targetPlaybackRate -
+            targetRate -
             engineAudio.playbackRate
-        ) * 0.12;
+        ) * 0.10;
 
 
     engineAudio.playbackRate =
         clamp(
             engineAudio.playbackRate,
-            0.65,
-            2
+            0.70,
+            1.90
         );
 
 
@@ -288,8 +375,8 @@ function updateEngineSound() {
     // --------------------------------------------------------
 
     const targetVolume =
-        0.16 +
-        speedRatio * 0.64;
+        0.18 +
+        ratio * 0.55;
 
 
     engineAudio.volume +=
@@ -303,28 +390,20 @@ function updateEngineSound() {
         clamp(
             engineAudio.volume,
             0,
-            0.8
+            0.75
         );
 
 
     // --------------------------------------------------------
-    // إذا توقف الملف نحاول تشغيله مرة أخرى
+    // التأكد أن الملف يعمل
     // --------------------------------------------------------
 
     if (
-        engineAudio.paused &&
-        !game.finished
+        engineAudio.paused
     ) {
 
         engineAudio.play()
-            .catch(function(error) {
-
-                console.log(
-                    "تعذر استئناف صوت المحرك:",
-                    error
-                );
-
-            });
+            .catch(() => {});
     }
 }
 
@@ -401,6 +480,7 @@ function drawRoundedRect(
 
     ctx.closePath();
 
+
     if (fill) {
 
         ctx.fillStyle =
@@ -408,6 +488,7 @@ function drawRoundedRect(
 
         ctx.fill();
     }
+
 
     if (stroke) {
 
@@ -897,7 +978,7 @@ function drawCar(
 
 
 // ============================================================
-// رسم الزر
+// رسم زر
 // ============================================================
 
 function drawButton(
@@ -1118,6 +1199,10 @@ function drawRoad() {
 
 function drawUI() {
 
+    // --------------------------------------------------------
+    // المسافة
+    // --------------------------------------------------------
+
     drawRoundedRect(
         15,
         17,
@@ -1154,6 +1239,10 @@ function drawUI() {
     );
 
 
+    // --------------------------------------------------------
+    // الوقت
+    // --------------------------------------------------------
+
     drawRoundedRect(
         15,
         65,
@@ -1183,6 +1272,10 @@ function drawUI() {
     );
 
 
+    // --------------------------------------------------------
+    // زر X
+    // --------------------------------------------------------
+
     ctx.fillStyle =
         "#ffffff";
 
@@ -1197,6 +1290,10 @@ function drawUI() {
         35
     );
 
+
+    // --------------------------------------------------------
+    // السرعة
+    // --------------------------------------------------------
 
     ctx.fillStyle =
         "#ffffff";
@@ -1239,6 +1336,10 @@ function drawUI() {
         0;
 
 
+    // --------------------------------------------------------
+    // أزرار التحكم
+    // --------------------------------------------------------
+
     const buttons =
         getButtonPositions();
 
@@ -1270,6 +1371,52 @@ function drawUI() {
         "↓"
     );
 
+
+    // ========================================================
+    // زر الصوت
+    // ========================================================
+
+    const soundX =
+        W - 35;
+
+    const soundY =
+        90;
+
+
+    drawRoundedRect(
+        soundX - 24,
+        soundY - 20,
+        48,
+        40,
+        8,
+        soundEnabled
+        ? "#176b2c"
+        : "#222222",
+        "#ffffff",
+        2
+    );
+
+
+    ctx.fillStyle =
+        "#ffffff";
+
+
+    ctx.font =
+        "22px Arial";
+
+
+    ctx.fillText(
+        soundEnabled
+        ? "🔊"
+        : "🔇",
+        soundX,
+        soundY + 1
+    );
+
+
+    // --------------------------------------------------------
+    // شاشة النهاية
+    // --------------------------------------------------------
 
     if (
         game.finished
@@ -1749,10 +1896,7 @@ function update(dt) {
     }
 
 
-    // ========================================================
-    // صوت السيارة الحمراء فقط
-    // ========================================================
-
+    // صوت السيارة
     updateEngineSound();
 
 
@@ -2630,8 +2774,17 @@ function restart() {
     resetWorld();
 
 
-    // تشغيل الصوت مرة أخرى
-    startEngineSound();
+    if (
+        soundEnabled
+    ) {
+
+        engineAudio.currentTime = 0;
+
+        engineAudio.volume = 0.35;
+
+        engineAudio.play()
+            .catch(() => {});
+    }
 }
 
 
@@ -2644,10 +2797,7 @@ function draw() {
     drawRoad();
 
 
-    // --------------------------------------------------------
     // سيارات المرور
-    // --------------------------------------------------------
-
     for (
         const t of game.traffic
     ) {
@@ -2662,10 +2812,7 @@ function draw() {
     }
 
 
-    // --------------------------------------------------------
     // سيارة اللاعب
-    // --------------------------------------------------------
-
     const alpha =
         game.collisionLocked &&
         !game.flashOn
@@ -2853,6 +3000,34 @@ function getTouchedButton(
 
 
 // ============================================================
+// هل ضغط على زر الصوت؟
+/* ============================================================ */
+
+function isSoundButtonHit(x, y) {
+
+    const soundX =
+        W - 35;
+
+    const soundY =
+        90;
+
+
+    return (
+
+        Math.abs(
+            x - soundX
+        ) <= 32
+
+        &&
+
+        Math.abs(
+            y - soundY
+        ) <= 28
+    );
+}
+
+
+// ============================================================
 // تحديث اللمسات
 // ============================================================
 
@@ -2942,11 +3117,8 @@ canvas.addEventListener(
         e.preventDefault();
 
 
-        // ====================================================
-        // تشغيل صوت MP3 مباشرة من اللمسة
-        // ====================================================
-
-        startEngineSound();
+        // محاولة تشغيل الصوت من اللمسة
+        tryStartSound();
 
 
         for (
@@ -2961,12 +3133,29 @@ canvas.addEventListener(
 
 
             // ------------------------------------------------
+            // زر الصوت
+            // ------------------------------------------------
+
+            if (
+                isSoundButtonHit(
+                    p.x,
+                    p.y
+                )
+            ) {
+
+                enableSound();
+
+                continue;
+            }
+
+
+            // ------------------------------------------------
             // زر X
             // ------------------------------------------------
 
             if (
                 p.x > W - 90 &&
-                p.y < 90
+                p.y < 70
             ) {
 
                 if (
@@ -3185,7 +3374,20 @@ canvas.addEventListener(
         e.preventDefault();
 
 
-        startEngineSound();
+        tryStartSound();
+
+
+        if (
+            isSoundButtonHit(
+                e.offsetX,
+                e.offsetY
+            )
+        ) {
+
+            enableSound();
+
+            return;
+        }
 
 
         const button =
@@ -3275,7 +3477,7 @@ window.addEventListener(
     "keydown",
     function(e) {
 
-        startEngineSound();
+        tryStartSound();
 
 
         if (
