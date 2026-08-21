@@ -29,21 +29,14 @@ html,
 body {
     margin: 0;
     padding: 0;
-
     width: 100%;
     height: 100%;
-
     overflow: hidden;
-
     background: #78b85a;
-
     touch-action: none;
-
     user-select: none;
     -webkit-user-select: none;
-
     overscroll-behavior: none;
-
     position: fixed;
     inset: 0;
 }
@@ -52,29 +45,21 @@ body {
     width: 100vw;
     height: 100vh;
     height: 100dvh;
-
     overflow: hidden;
-
     background: #78b85a;
 }
 
 canvas {
     display: block;
-
     position: fixed;
-
     left: 0;
     top: 0;
-
     width: 100vw;
     height: 100vh;
     height: 100dvh;
-
     margin: 0;
     padding: 0;
-
     border: 0;
-
     z-index: 1;
 }
 
@@ -110,24 +95,16 @@ let dpr = 1;
 
 
 // ============================================================
-// نظام صوت محرك سيارة اللاعب فقط
+// نظام صوت سيارة اللاعب فقط
 // ============================================================
 
 let audioCtx = null;
 
-let engineMaster = null;
-
 let engineOsc1 = null;
-
 let engineOsc2 = null;
-
 let engineOsc3 = null;
 
-let engineGain1 = null;
-
-let engineGain2 = null;
-
-let engineGain3 = null;
+let engineGain = null;
 
 let engineFilter = null;
 
@@ -150,51 +127,43 @@ function initEngineSound() {
             window.AudioContext ||
             window.webkitAudioContext;
 
-
         if (!AudioContextClass) {
-
-            console.log(
-                "Web Audio غير مدعوم"
-            );
-
             return;
         }
 
+        if (!audioCtx) {
 
-        audioCtx =
-            new AudioContextClass();
+            audioCtx =
+                new AudioContextClass();
+        }
 
 
         // ----------------------------------------------------
-        // Master
+        // المحرك الرئيسي
         // ----------------------------------------------------
 
-        engineMaster =
+        engineGain =
             audioCtx.createGain();
 
-
-        engineMaster.gain.value =
-            0.0;
+        engineGain.gain.value =
+            0;
 
 
         // ----------------------------------------------------
-        // فلتر المحرك
+        // فلتر
         // ----------------------------------------------------
 
         engineFilter =
             audioCtx.createBiquadFilter();
 
-
         engineFilter.type =
             "lowpass";
 
-
         engineFilter.frequency.value =
-            900;
-
+            1200;
 
         engineFilter.Q.value =
-            1.2;
+            1;
 
 
         // ----------------------------------------------------
@@ -204,21 +173,18 @@ function initEngineSound() {
         engineOsc1 =
             audioCtx.createOscillator();
 
-
         engineOsc1.type =
             "sawtooth";
 
-
         engineOsc1.frequency.value =
-            75;
+            80;
 
 
-        engineGain1 =
+        const gain1 =
             audioCtx.createGain();
 
-
-        engineGain1.gain.value =
-            0.22;
+        gain1.gain.value =
+            0.32;
 
 
         // ----------------------------------------------------
@@ -228,21 +194,18 @@ function initEngineSound() {
         engineOsc2 =
             audioCtx.createOscillator();
 
-
         engineOsc2.type =
             "square";
 
-
         engineOsc2.frequency.value =
-            150;
+            160;
 
 
-        engineGain2 =
+        const gain2 =
             audioCtx.createGain();
 
-
-        engineGain2.gain.value =
-            0.07;
+        gain2.gain.value =
+            0.08;
 
 
         // ----------------------------------------------------
@@ -252,65 +215,45 @@ function initEngineSound() {
         engineOsc3 =
             audioCtx.createOscillator();
 
-
         engineOsc3.type =
             "triangle";
 
-
         engineOsc3.frequency.value =
-            38;
+            40;
 
 
-        engineGain3 =
+        const gain3 =
             audioCtx.createGain();
 
-
-        engineGain3.gain.value =
-            0.18;
+        gain3.gain.value =
+            0.25;
 
 
         // ----------------------------------------------------
         // التوصيل
         // ----------------------------------------------------
 
-        engineOsc1.connect(
-            engineGain1
-        );
+        engineOsc1.connect(gain1);
 
-        engineOsc2.connect(
-            engineGain2
-        );
+        engineOsc2.connect(gain2);
 
-        engineOsc3.connect(
-            engineGain3
-        );
+        engineOsc3.connect(gain3);
 
+        gain1.connect(engineFilter);
 
-        engineGain1.connect(
-            engineFilter
-        );
+        gain2.connect(engineFilter);
 
-        engineGain2.connect(
-            engineFilter
-        );
+        gain3.connect(engineFilter);
 
-        engineGain3.connect(
-            engineFilter
-        );
+        engineFilter.connect(engineGain);
 
-
-        engineFilter.connect(
-            engineMaster
-        );
-
-
-        engineMaster.connect(
+        engineGain.connect(
             audioCtx.destination
         );
 
 
         // ----------------------------------------------------
-        // تشغيل المذبذبات
+        // تشغيل الأصوات
         // ----------------------------------------------------
 
         engineOsc1.start();
@@ -322,11 +265,19 @@ function initEngineSound() {
 
         engineStarted = true;
 
+
+        if (
+            audioCtx.state === "suspended"
+        ) {
+
+            audioCtx.resume();
+        }
+
     }
     catch (error) {
 
         console.log(
-            "Engine sound error:",
+            "Engine audio error:",
             error
         );
     }
@@ -334,24 +285,62 @@ function initEngineSound() {
 
 
 // ============================================================
-// تشغيل الصوت بعد تفاعل المستخدم
+// تشغيل المحرك من ضغط المستخدم
 // ============================================================
 
 function startEngineSound() {
 
-    initEngineSound();
+    try {
+
+        const AudioContextClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+            return;
+        }
 
 
-    if (!audioCtx) {
-        return;
+        if (!audioCtx) {
+
+            audioCtx =
+                new AudioContextClass();
+        }
+
+
+        // ----------------------------------------------------
+        // تشغيل AudioContext مباشرة من اللمسة
+        // ----------------------------------------------------
+
+        if (
+            audioCtx.state === "suspended"
+        ) {
+
+            audioCtx.resume();
+        }
+
+
+        // ----------------------------------------------------
+        // إنشاء المحرك
+        // ----------------------------------------------------
+
+        initEngineSound();
+
+
+        if (
+            audioCtx.state === "suspended"
+        ) {
+
+            audioCtx.resume();
+        }
+
     }
+    catch (error) {
 
-
-    if (
-        audioCtx.state === "suspended"
-    ) {
-
-        audioCtx.resume();
+        console.log(
+            "Audio start error:",
+            error
+        );
     }
 }
 
@@ -364,7 +353,8 @@ function updateEngineSound() {
 
     if (
         !engineStarted ||
-        !audioCtx
+        !audioCtx ||
+        !engineGain
     ) {
 
         return;
@@ -385,26 +375,18 @@ function updateEngineSound() {
         game.speed <= 0
     ) {
 
-        engineMaster.gain
-            .cancelScheduledValues(
-                now
-            );
-
-
-        engineMaster.gain
-            .setTargetAtTime(
-                0,
-                now,
-                0.08
-            );
-
+        engineGain.gain.setTargetAtTime(
+            0,
+            now,
+            0.08
+        );
 
         return;
     }
 
 
     // --------------------------------------------------------
-    // سرعة السيارة
+    // السرعة
     // --------------------------------------------------------
 
     const speed =
@@ -416,66 +398,53 @@ function updateEngineSound() {
 
 
     // --------------------------------------------------------
-    // نسبة السرعة
-    // --------------------------------------------------------
-
-    const ratio =
-        speed /
-        game.maxSpeed;
-
-
-    // --------------------------------------------------------
-    // تردد المحرك الأساسي
+    // تردد المحرك
     // --------------------------------------------------------
 
     const baseFrequency =
         65 +
-        speed * 1.45;
+        speed * 1.55;
 
 
-    // --------------------------------------------------------
-    // الترددات
-    // --------------------------------------------------------
-
-    engineOsc1.frequency
-        .setTargetAtTime(
-            baseFrequency,
-            now,
-            0.035
-        );
+    engineOsc1.frequency.setTargetAtTime(
+        baseFrequency,
+        now,
+        0.04
+    );
 
 
-    engineOsc2.frequency
-        .setTargetAtTime(
-            baseFrequency * 2,
-            now,
-            0.035
-        );
+    engineOsc2.frequency.setTargetAtTime(
+        baseFrequency * 2,
+        now,
+        0.04
+    );
 
 
-    engineOsc3.frequency
-        .setTargetAtTime(
-            baseFrequency * 0.5,
-            now,
-            0.035
-        );
+    engineOsc3.frequency.setTargetAtTime(
+        baseFrequency * 0.5,
+        now,
+        0.04
+    );
 
 
     // --------------------------------------------------------
     // مستوى الصوت
     // --------------------------------------------------------
 
+    const ratio =
+        speed / game.maxSpeed;
+
+
     const volume =
-        0.10 +
-        ratio * 0.18;
+        0.08 +
+        ratio * 0.20;
 
 
-    engineMaster.gain
-        .setTargetAtTime(
-            volume,
-            now,
-            0.06
-        );
+    engineGain.gain.setTargetAtTime(
+        volume,
+        now,
+        0.05
+    );
 
 
     // --------------------------------------------------------
@@ -483,16 +452,15 @@ function updateEngineSound() {
     // --------------------------------------------------------
 
     const filterFrequency =
-        650 +
+        700 +
         speed * 8;
 
 
-    engineFilter.frequency
-        .setTargetAtTime(
-            filterFrequency,
-            now,
-            0.05
-        );
+    engineFilter.frequency.setTargetAtTime(
+        filterFrequency,
+        now,
+        0.05
+    );
 }
 
 
@@ -568,7 +536,6 @@ function drawRoundedRect(
 
     ctx.closePath();
 
-
     if (fill) {
 
         ctx.fillStyle =
@@ -576,7 +543,6 @@ function drawRoundedRect(
 
         ctx.fill();
     }
-
 
     if (stroke) {
 
@@ -705,7 +671,7 @@ const TRAFFIC_RESPAWN_GAP = 260;
 
 
 // ============================================================
-// تغيير حجم الشاشة
+// تغيير الحجم
 // ============================================================
 
 function resize() {
@@ -1066,7 +1032,7 @@ function drawCar(
 
 
 // ============================================================
-// رسم زر
+// رسم الزر
 // ============================================================
 
 function drawButton(
@@ -1918,7 +1884,7 @@ function update(dt) {
     }
 
 
-    // صوت المحرك
+    // صوت السيارة الحمراء فقط
     updateEngineSound();
 
 
@@ -1971,7 +1937,6 @@ function update(dt) {
                             game.speed +
                             game.speedStep
                         );
-
                 }
 
                 else if (
@@ -2089,7 +2054,7 @@ function update(dt) {
 
 
     // --------------------------------------------------------
-    // التصادم
+    // فترة التصادم
     // --------------------------------------------------------
 
     if (
@@ -2118,6 +2083,7 @@ function update(dt) {
         game.moveLeft = false;
 
         game.moveRight = false;
+
 
         game.playerX =
             game.savedCarX;
@@ -2381,15 +2347,11 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
-    // منع تداخل سيارات المرور
-    // --------------------------------------------------------
-
     separateTrafficCars();
 
 
     // --------------------------------------------------------
-    // إعادة السيارات
+    // إعادة سيارات المرور
     // --------------------------------------------------------
 
     for (
@@ -2521,10 +2483,6 @@ function update(dt) {
     }
 
 
-    // --------------------------------------------------------
-    // فحص التداخل
-    // --------------------------------------------------------
-
     separateTrafficCars();
 
 
@@ -2542,7 +2500,7 @@ function update(dt) {
 
 
     // --------------------------------------------------------
-    // حركة اللاعب
+    // حركة السيارة
     // --------------------------------------------------------
 
     if (
@@ -3110,7 +3068,8 @@ canvas.addEventListener(
 
 
         // ====================================================
-        // تشغيل صوت المحرك من تفاعل المستخدم
+        // مهم جدًا:
+        // تشغيل الصوت مباشرة من حدث اللمس
         // ====================================================
 
         startEngineSound();
