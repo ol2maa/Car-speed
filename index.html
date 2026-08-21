@@ -74,6 +74,20 @@ canvas {
 
 <canvas id="game"></canvas>
 
+<!-- ========================================================
+     ملف صوت محرك السيارة الحقيقي
+     يجب أن يكون في نفس مجلد index.html
+     ======================================================== -->
+
+<audio
+    id="engineAudio"
+    src="./Fast-car-sound-effect.mp3"
+    preload="auto"
+    loop
+    playsinline>
+</audio>
+
+
 <script>
 
 "use strict";
@@ -95,243 +109,86 @@ let dpr = 1;
 
 
 // ============================================================
-// نظام صوت سيارة اللاعب فقط
+// نظام صوت السيارة الحقيقي
 // ============================================================
 
-let audioCtx = null;
-
-let engineOsc1 = null;
-let engineOsc2 = null;
-let engineOsc3 = null;
-
-let engineGain = null;
-
-let engineFilter = null;
+const engineAudio =
+    document.getElementById("engineAudio");
 
 let engineStarted = false;
 
-
-// ============================================================
-// إنشاء نظام صوت المحرك
-// ============================================================
-
-function initEngineSound() {
-
-    if (engineStarted) {
-        return;
-    }
-
-    try {
-
-        const AudioContextClass =
-            window.AudioContext ||
-            window.webkitAudioContext;
-
-        if (!AudioContextClass) {
-            return;
-        }
-
-        if (!audioCtx) {
-
-            audioCtx =
-                new AudioContextClass();
-        }
-
-
-        // ----------------------------------------------------
-        // المحرك الرئيسي
-        // ----------------------------------------------------
-
-        engineGain =
-            audioCtx.createGain();
-
-        engineGain.gain.value =
-            0;
-
-
-        // ----------------------------------------------------
-        // فلتر
-        // ----------------------------------------------------
-
-        engineFilter =
-            audioCtx.createBiquadFilter();
-
-        engineFilter.type =
-            "lowpass";
-
-        engineFilter.frequency.value =
-            1200;
-
-        engineFilter.Q.value =
-            1;
-
-
-        // ----------------------------------------------------
-        // Oscillator 1
-        // ----------------------------------------------------
-
-        engineOsc1 =
-            audioCtx.createOscillator();
-
-        engineOsc1.type =
-            "sawtooth";
-
-        engineOsc1.frequency.value =
-            80;
-
-
-        const gain1 =
-            audioCtx.createGain();
-
-        gain1.gain.value =
-            0.32;
-
-
-        // ----------------------------------------------------
-        // Oscillator 2
-        // ----------------------------------------------------
-
-        engineOsc2 =
-            audioCtx.createOscillator();
-
-        engineOsc2.type =
-            "square";
-
-        engineOsc2.frequency.value =
-            160;
-
-
-        const gain2 =
-            audioCtx.createGain();
-
-        gain2.gain.value =
-            0.08;
-
-
-        // ----------------------------------------------------
-        // Oscillator 3
-        // ----------------------------------------------------
-
-        engineOsc3 =
-            audioCtx.createOscillator();
-
-        engineOsc3.type =
-            "triangle";
-
-        engineOsc3.frequency.value =
-            40;
-
-
-        const gain3 =
-            audioCtx.createGain();
-
-        gain3.gain.value =
-            0.25;
-
-
-        // ----------------------------------------------------
-        // التوصيل
-        // ----------------------------------------------------
-
-        engineOsc1.connect(gain1);
-
-        engineOsc2.connect(gain2);
-
-        engineOsc3.connect(gain3);
-
-        gain1.connect(engineFilter);
-
-        gain2.connect(engineFilter);
-
-        gain3.connect(engineFilter);
-
-        engineFilter.connect(engineGain);
-
-        engineGain.connect(
-            audioCtx.destination
-        );
-
-
-        // ----------------------------------------------------
-        // تشغيل الأصوات
-        // ----------------------------------------------------
-
-        engineOsc1.start();
-
-        engineOsc2.start();
-
-        engineOsc3.start();
-
-
-        engineStarted = true;
-
-
-        if (
-            audioCtx.state === "suspended"
-        ) {
-
-            audioCtx.resume();
-        }
-
-    }
-    catch (error) {
-
-        console.log(
-            "Engine audio error:",
-            error
-        );
-    }
-}
+let engineUnlocked = false;
 
 
 // ============================================================
-// تشغيل المحرك من ضغط المستخدم
+// إعدادات الصوت
+// ============================================================
+
+engineAudio.loop = true;
+
+engineAudio.preload = "auto";
+
+engineAudio.playsInline = true;
+
+engineAudio.volume = 0;
+
+engineAudio.playbackRate = 0.8;
+
+
+// ============================================================
+// تشغيل صوت المحرك
 // ============================================================
 
 function startEngineSound() {
 
+    if (!engineAudio) {
+        return;
+    }
+
+
     try {
 
-        const AudioContextClass =
-            window.AudioContext ||
-            window.webkitAudioContext;
-
-        if (!AudioContextClass) {
-            return;
-        }
+        engineAudio.muted = false;
 
 
-        if (!audioCtx) {
+        /*
+         * مهم جدًا للآيفون:
+         * play() يتم استدعاؤها من داخل حدث اللمس
+         */
 
-            audioCtx =
-                new AudioContextClass();
-        }
-
-
-        // ----------------------------------------------------
-        // تشغيل AudioContext مباشرة من اللمسة
-        // ----------------------------------------------------
-
-        if (
-            audioCtx.state === "suspended"
-        ) {
-
-            audioCtx.resume();
-        }
-
-
-        // ----------------------------------------------------
-        // إنشاء المحرك
-        // ----------------------------------------------------
-
-        initEngineSound();
+        const playPromise =
+            engineAudio.play();
 
 
         if (
-            audioCtx.state === "suspended"
+            playPromise &&
+            typeof playPromise.then === "function"
         ) {
 
-            audioCtx.resume();
+            playPromise
+                .then(function() {
+
+                    engineStarted = true;
+
+                    engineUnlocked = true;
+
+                })
+                .catch(function(error) {
+
+                    console.log(
+                        "تعذر تشغيل صوت المحرك:",
+                        error
+                    );
+
+                });
+
+        }
+
+        else {
+
+            engineStarted = true;
+
+            engineUnlocked = true;
         }
 
     }
@@ -346,23 +203,18 @@ function startEngineSound() {
 
 
 // ============================================================
-// تحديث صوت المحرك
+// تحديث صوت المحرك حسب سرعة السيارة
 // ============================================================
 
 function updateEngineSound() {
 
     if (
-        !engineStarted ||
-        !audioCtx ||
-        !engineGain
+        !engineAudio ||
+        !engineUnlocked
     ) {
 
         return;
     }
-
-
-    const now =
-        audioCtx.currentTime;
 
 
     // --------------------------------------------------------
@@ -375,92 +227,105 @@ function updateEngineSound() {
         game.speed <= 0
     ) {
 
-        engineGain.gain.setTargetAtTime(
-            0,
-            now,
-            0.08
-        );
+        engineAudio.volume +=
+            (
+                0 -
+                engineAudio.volume
+            ) * 0.18;
+
+
+        if (
+            engineAudio.volume < 0.005
+        ) {
+
+            engineAudio.volume = 0;
+        }
+
 
         return;
     }
 
 
     // --------------------------------------------------------
-    // السرعة
+    // نسبة السرعة
     // --------------------------------------------------------
 
-    const speed =
+    const speedRatio =
         clamp(
-            game.speed,
+            game.speed /
+            game.maxSpeed,
             0,
-            game.maxSpeed
+            1
         );
 
 
     // --------------------------------------------------------
-    // تردد المحرك
+    // سرعة تشغيل ملف MP3
     // --------------------------------------------------------
 
-    const baseFrequency =
-        65 +
-        speed * 1.55;
+    const targetPlaybackRate =
+        0.75 +
+        speedRatio * 1.15;
 
 
-    engineOsc1.frequency.setTargetAtTime(
-        baseFrequency,
-        now,
-        0.04
-    );
+    engineAudio.playbackRate +=
+        (
+            targetPlaybackRate -
+            engineAudio.playbackRate
+        ) * 0.12;
 
 
-    engineOsc2.frequency.setTargetAtTime(
-        baseFrequency * 2,
-        now,
-        0.04
-    );
-
-
-    engineOsc3.frequency.setTargetAtTime(
-        baseFrequency * 0.5,
-        now,
-        0.04
-    );
+    engineAudio.playbackRate =
+        clamp(
+            engineAudio.playbackRate,
+            0.65,
+            2
+        );
 
 
     // --------------------------------------------------------
     // مستوى الصوت
     // --------------------------------------------------------
 
-    const ratio =
-        speed / game.maxSpeed;
+    const targetVolume =
+        0.16 +
+        speedRatio * 0.64;
 
 
-    const volume =
-        0.08 +
-        ratio * 0.20;
+    engineAudio.volume +=
+        (
+            targetVolume -
+            engineAudio.volume
+        ) * 0.12;
 
 
-    engineGain.gain.setTargetAtTime(
-        volume,
-        now,
-        0.05
-    );
+    engineAudio.volume =
+        clamp(
+            engineAudio.volume,
+            0,
+            0.8
+        );
 
 
     // --------------------------------------------------------
-    // الفلتر
+    // إذا توقف الملف نحاول تشغيله مرة أخرى
     // --------------------------------------------------------
 
-    const filterFrequency =
-        700 +
-        speed * 8;
+    if (
+        engineAudio.paused &&
+        !game.finished
+    ) {
 
+        engineAudio.play()
+            .catch(function(error) {
 
-    engineFilter.frequency.setTargetAtTime(
-        filterFrequency,
-        now,
-        0.05
-    );
+                console.log(
+                    "تعذر استئناف صوت المحرك:",
+                    error
+                );
+
+            });
+    }
 }
 
 
@@ -1884,7 +1749,10 @@ function update(dt) {
     }
 
 
+    // ========================================================
     // صوت السيارة الحمراء فقط
+    // ========================================================
+
     updateEngineSound();
 
 
@@ -2762,6 +2630,7 @@ function restart() {
     resetWorld();
 
 
+    // تشغيل الصوت مرة أخرى
     startEngineSound();
 }
 
@@ -2775,7 +2644,10 @@ function draw() {
     drawRoad();
 
 
+    // --------------------------------------------------------
     // سيارات المرور
+    // --------------------------------------------------------
+
     for (
         const t of game.traffic
     ) {
@@ -2790,7 +2662,10 @@ function draw() {
     }
 
 
+    // --------------------------------------------------------
     // سيارة اللاعب
+    // --------------------------------------------------------
+
     const alpha =
         game.collisionLocked &&
         !game.flashOn
@@ -3068,8 +2943,7 @@ canvas.addEventListener(
 
 
         // ====================================================
-        // مهم جدًا:
-        // تشغيل الصوت مباشرة من حدث اللمس
+        // تشغيل صوت MP3 مباشرة من اللمسة
         // ====================================================
 
         startEngineSound();
