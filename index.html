@@ -110,6 +110,234 @@ let dpr = 1;
 
 
 // ============================================================
+// صوت محرك سيارة اللاعب فقط
+// ============================================================
+
+let audioCtx = null;
+
+let engineOscillator = null;
+
+let engineGain = null;
+
+let engineFilter = null;
+
+let engineStarted = false;
+
+
+// ============================================================
+// إنشاء صوت المحرك
+// ============================================================
+
+function initEngineSound() {
+
+    if (engineStarted) {
+        return;
+    }
+
+    try {
+
+        audioCtx =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+
+        engineOscillator =
+            audioCtx.createOscillator();
+
+
+        engineGain =
+            audioCtx.createGain();
+
+
+        engineFilter =
+            audioCtx.createBiquadFilter();
+
+
+        engineOscillator.type =
+            "sawtooth";
+
+
+        engineOscillator.frequency.value =
+            65;
+
+
+        engineFilter.type =
+            "lowpass";
+
+
+        engineFilter.frequency.value =
+            700;
+
+
+        engineGain.gain.value =
+            0;
+
+
+        engineOscillator.connect(
+            engineFilter
+        );
+
+
+        engineFilter.connect(
+            engineGain
+        );
+
+
+        engineGain.connect(
+            audioCtx.destination
+        );
+
+
+        engineOscillator.start();
+
+        engineStarted = true;
+
+    }
+    catch (error) {
+
+        console.log(
+            "Engine audio error:",
+            error
+        );
+    }
+}
+
+
+// ============================================================
+// تشغيل نظام الصوت
+// ============================================================
+
+function startEngineAudio() {
+
+    initEngineSound();
+
+
+    if (
+        audioCtx &&
+        audioCtx.state === "suspended"
+    ) {
+
+        audioCtx.resume();
+    }
+}
+
+
+// ============================================================
+// تحديث صوت المحرك
+// ============================================================
+
+function updateEngineSound() {
+
+    if (
+        !engineStarted ||
+        !audioCtx ||
+        !engineOscillator ||
+        !engineGain ||
+        !engineFilter
+    ) {
+
+        return;
+    }
+
+
+    const now =
+        audioCtx.currentTime;
+
+
+    // --------------------------------------------------------
+    // السيارة متوقفة
+    // --------------------------------------------------------
+
+    if (
+        game.finished ||
+        game.collisionLocked ||
+        game.speed <= 0
+    ) {
+
+        engineGain.gain.cancelScheduledValues(
+            now
+        );
+
+
+        engineGain.gain.setTargetAtTime(
+            0,
+            now,
+            0.06
+        );
+
+
+        return;
+    }
+
+
+    // --------------------------------------------------------
+    // سرعة السيارة
+    // --------------------------------------------------------
+
+    const speed =
+        clamp(
+            game.speed,
+            0,
+            game.maxSpeed
+        );
+
+
+    // --------------------------------------------------------
+    // تردد المحرك
+    // --------------------------------------------------------
+
+    const frequency =
+        65 +
+        speed * 1.7;
+
+
+    engineOscillator.frequency.setTargetAtTime(
+        frequency,
+        now,
+        0.04
+    );
+
+
+    // --------------------------------------------------------
+    // قوة الصوت
+    // --------------------------------------------------------
+
+    const volume =
+        0.025 +
+        (
+            speed /
+            game.maxSpeed
+        ) *
+        0.075;
+
+
+    engineGain.gain.setTargetAtTime(
+        volume,
+        now,
+        0.05
+    );
+
+
+    // --------------------------------------------------------
+    // فلتر الصوت
+    // --------------------------------------------------------
+
+    const filterFrequency =
+        500 +
+        speed * 7;
+
+
+    engineFilter.frequency.setTargetAtTime(
+        filterFrequency,
+        now,
+        0.05
+    );
+}
+
+
+// ============================================================
 // مستطيل مدور
 // ============================================================
 
@@ -182,13 +410,21 @@ function drawRoundedRect(
     ctx.closePath();
 
     if (fill) {
-        ctx.fillStyle = fill;
+
+        ctx.fillStyle =
+            fill;
+
         ctx.fill();
     }
 
     if (stroke) {
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = lineWidth;
+
+        ctx.strokeStyle =
+            stroke;
+
+        ctx.lineWidth =
+            lineWidth;
+
         ctx.stroke();
     }
 }
@@ -338,6 +574,7 @@ function resize() {
 
 
     W = width;
+
     H = height;
 
 
@@ -349,10 +586,14 @@ function resize() {
 
 
     canvas.width =
-        Math.floor(W * dpr);
+        Math.floor(
+            W * dpr
+        );
 
     canvas.height =
-        Math.floor(H * dpr);
+        Math.floor(
+            H * dpr
+        );
 
 
     ctx.setTransform(
@@ -519,7 +760,9 @@ function rand(a, b) {
 function formatTime(seconds) {
 
     const minutes =
-        Math.floor(seconds / 60);
+        Math.floor(
+            seconds / 60
+        );
 
 
     const sec =
@@ -1254,6 +1497,7 @@ function resetWorld() {
 
     game.targetRotation = 0;
 
+
     game.savedCarX =
         game.playerX;
 
@@ -1514,6 +1758,13 @@ function update(dt) {
 
 
     // --------------------------------------------------------
+    // صوت المحرك
+    // --------------------------------------------------------
+
+    updateEngineSound();
+
+
+    // --------------------------------------------------------
     // الوقت
     // --------------------------------------------------------
 
@@ -1562,7 +1813,6 @@ function update(dt) {
                             game.speed +
                             game.speedStep
                         );
-
                 }
 
                 else if (
@@ -1709,6 +1959,7 @@ function update(dt) {
         game.moveLeft = false;
 
         game.moveRight = false;
+
 
         game.playerX =
             game.savedCarX;
@@ -1940,7 +2191,6 @@ function update(dt) {
             t.currentSpeed =
                 t.baseSpeed *
                 factor;
-
         }
 
         else {
@@ -1973,7 +2223,7 @@ function update(dt) {
 
 
     // --------------------------------------------------------
-    // منع تداخل السيارات
+    // منع تداخل سيارات المرور
     // --------------------------------------------------------
 
     separateTrafficCars();
@@ -1991,10 +2241,6 @@ function update(dt) {
             t.y >
             H + 140
         ) {
-
-            // ================================================
-            // نختار المسار الأقل ازدحامًا
-            // ================================================
 
             const laneCounts =
                 game.trafficLanes.map(
@@ -2029,10 +2275,6 @@ function update(dt) {
             }
 
 
-            // ================================================
-            // السيارات الموجودة في المسار الجديد
-            // ================================================
-
             const laneCars =
                 game.traffic.filter(
                     o =>
@@ -2041,21 +2283,10 @@ function update(dt) {
                 );
 
 
-            // ================================================
-            // أهم نقطة:
-            //
-            // السيارة الجديدة تبدأ دائمًا فوق الشاشة.
-            // ================================================
-
             let spawnY =
                 -game.carHeight -
                 rand(80, 180);
 
-
-            // ================================================
-            // إذا توجد سيارة في المسار،
-            // نضع الجديدة فوقها بمسافة كبيرة.
-            // ================================================
 
             if (
                 laneCars.length > 0
@@ -2075,8 +2306,6 @@ function update(dt) {
                     rand(30, 100);
 
 
-                // لا نسمح أبدًا بأن تصبح
-                // داخل الشاشة.
                 spawnY =
                     Math.min(
                         spawnY,
@@ -2085,10 +2314,6 @@ function update(dt) {
                     );
             }
 
-
-            // ================================================
-            // سرعة جديدة
-            // ================================================
 
             const speedOptions = [
 
@@ -2125,10 +2350,6 @@ function update(dt) {
                 0;
 
 
-            // ================================================
-            // تحديد مكان السيارة
-            // ================================================
-
             t.x =
                 game.trafficLanes[
                     newLane
@@ -2149,7 +2370,7 @@ function update(dt) {
 
 
     // --------------------------------------------------------
-    // فحص التصادم مع اللاعب
+    // فحص التصادم
     // --------------------------------------------------------
 
     if (
@@ -2176,7 +2397,6 @@ function update(dt) {
 
             game.targetRotation =
                 -0.12;
-
         }
 
         else if (
@@ -2185,7 +2405,6 @@ function update(dt) {
 
             game.targetRotation =
                 0.12;
-
         }
 
         else {
@@ -2340,15 +2559,19 @@ function startCollision(t) {
 
     game.speedMotion = 0;
 
+
     game.collisionLocked =
         true;
+
 
     game.collisionTimer =
         game.collisionLockTime;
 
+
     game.flashTimer = 0;
 
     game.flashOn = true;
+
 
     game.moveLeft = false;
 
@@ -2359,6 +2582,7 @@ function startCollision(t) {
     game.speedDownHeld = false;
 
     game.speedHoldTimer = 0;
+
 
     game.savedCarX =
         game.playerX;
@@ -2412,9 +2636,15 @@ function restart() {
     game.speedMotion =
         game.speed * 4;
 
+
     activeTouches.clear();
 
+
     resetWorld();
+
+
+    // إعادة تشغيل الصوت
+    startEngineAudio();
 }
 
 
@@ -2427,7 +2657,10 @@ function draw() {
     drawRoad();
 
 
+    // --------------------------------------------------------
     // سيارات المرور
+    // --------------------------------------------------------
+
     for (
         const t of game.traffic
     ) {
@@ -2442,7 +2675,10 @@ function draw() {
     }
 
 
+    // --------------------------------------------------------
     // سيارة اللاعب
+    // --------------------------------------------------------
+
     const alpha =
         game.collisionLocked &&
         !game.flashOn
@@ -2496,7 +2732,10 @@ function loop(now) {
 
     draw();
 
-    requestAnimationFrame(loop);
+
+    requestAnimationFrame(
+        loop
+    );
 }
 
 
@@ -2716,6 +2955,13 @@ canvas.addEventListener(
         e.preventDefault();
 
 
+        // ----------------------------------------------------
+        // تشغيل صوت السيارة عند أول لمسة
+        // ----------------------------------------------------
+
+        startEngineAudio();
+
+
         for (
             const touch of
             e.changedTouches
@@ -2727,7 +2973,10 @@ canvas.addEventListener(
                 );
 
 
+            // ------------------------------------------------
             // X
+            // ------------------------------------------------
+
             if (
                 p.x > W - 90 &&
                 p.y < 90
@@ -2949,6 +3198,9 @@ canvas.addEventListener(
         e.preventDefault();
 
 
+        startEngineAudio();
+
+
         const button =
             getTouchedButton(
                 e.offsetX,
@@ -3035,6 +3287,9 @@ window.addEventListener(
 window.addEventListener(
     "keydown",
     function(e) {
+
+        startEngineAudio();
+
 
         if (
             e.key === "ArrowLeft"
@@ -3162,7 +3417,9 @@ resize();
 
 resetWorld();
 
-requestAnimationFrame(loop);
+requestAnimationFrame(
+    loop
+);
 
 </script>
 
